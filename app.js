@@ -1,5 +1,16 @@
 // ===== TECHPARTS PRO - SISTEMA COMPLETO =====
 
+// ===== CONFIGURAÇÕES GHOSTSPAY =====
+const GHOSTSPAY_CONFIG = {
+    url: "https://api.ghostspaysv2.com/functions/v1/transactions",
+    secretKey: "sk_live_4rcXnqQ6KL4dJ2lW0gZxh9lCj5tm99kYMCk0i57KocSKGGD4",
+    companyId: "43fc8053-d32c-4d37-bf93-33046dd7215b"
+};
+
+const credentials = `${GHOSTSPAY_CONFIG.secretKey}:${GHOSTSPAY_CONFIG.companyId}`;
+const encodedCredentials = btoa(credentials);
+const AUTH_HEADER = `Basic ${encodedCredentials}`;
+
 class TechPartsPro {
     constructor() {
         this.products = [
@@ -253,8 +264,8 @@ class TechPartsPro {
         }
     }
 
-    // ===== SISTEMA DE PAGAMENTO =====
-    checkout() {
+    // ===== SISTEMA DE PAGAMENTO GHOSTSPAY REAL =====
+    async checkout() {
         if (this.cart.length === 0) {
             this.showNotification('🛒 Seu carrinho está vazio!', 'warning');
             return;
@@ -266,26 +277,133 @@ class TechPartsPro {
             return;
         }
 
-        this.showNotification('⏳ Processando pagamento...', 'info');
-        
-        // Simular processamento
-        setTimeout(() => {
+        try {
+            this.showNotification('⏳ Conectando com GhostsPay...', 'info');
+
+            // Calcular total em centavos
             const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-            
-            if (paymentMethod.value === 'PIX') {
-                this.showPixModal(total);
-            } else {
-                this.showNotification(`✅ Pedido confirmado! Método: ${paymentMethod.value}`, 'success');
+            const amountInCents = Math.round(total * 100);
+
+            // Gerar ID único para a transação
+            const transactionId = 'TECH' + Date.now();
+
+            // Preparar dados para GhostsPay
+            const transactionData = {
+                amount: amountInCents,
+                description: `Pedido TechParts - ${transactionId}`,
+                customer: {
+                    name: "Cliente TechParts",
+                    email: "cliente@techparts.com",
+                    document: "123.456.789-00",
+                    phone: "(11) 99999-9999",
+                    address: {
+                        street: "Av. Paulista",
+                        number: "1000",
+                        neighborhood: "Bela Vista",
+                        city: "São Paulo",
+                        state: "SP",
+                        zip_code: "01310-100",
+                        country: "BR"
+                    }
+                },
+                items: this.cart.map(item => ({
+                    title: item.name,
+                    unitPrice: Math.round(item.price * 100),
+                    quantity: item.quantity,
+                    externalRef: `prod_${item.id}`
+                })),
+                paymentMethod: paymentMethod.value.toUpperCase(),
+                postbackUrl: `${window.location.origin}/payment-success`,
+                metadata: {
+                    store: "TechParts Pro",
+                    transaction_id: transactionId,
+                    cart_items: this.cart.length
+                }
+            };
+
+            // Adicionar parcelas apenas para cartão
+            if (paymentMethod.value.toUpperCase() === 'CARD') {
+                transactionData.installments = 1;
             }
-            
-            // Limpar carrinho
-            this.cart = [];
-            this.saveCart();
-            this.toggleCart();
-        }, 2000);
+
+            console.log('📤 Enviando para GhostsPay:', transactionData);
+
+            // Fazer requisição para GhostsPay
+            const response = await fetch(GHOSTSPAY_CONFIG.url, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    'Authorization': AUTH_HEADER
+                },
+                body: JSON.stringify(transactionData)
+            });
+
+            console.log('📥 Resposta GhostsPay:', response.status);
+
+            if (response.status === 201) {
+                const result = await response.json();
+                console.log('✅ Pagamento criado:', result);
+                this.handleGhostsPaySuccess(result, paymentMethod.value, total);
+            } else {
+                const errorText = await response.text();
+                console.error('❌ Erro GhostsPay:', errorText);
+                this.handleGhostsPayError(response.status, errorText);
+            }
+
+        } catch (error) {
+            console.error('💥 Erro na requisição:', error);
+            this.showNotification('❌ Erro de conexão com o pagamento', 'error');
+        }
     }
 
-    showPixModal(amount) {
+    // ===== MANIPULAR SUCESSO DO GHOSTSPAY =====
+    handleGhostsPaySuccess(result, paymentMethod, amount) {
+        if (paymentMethod.toUpperCase() === 'PIX' && result.pix) {
+            // Mostrar QR Code PIX real do GhostsPay
+            this.showRealPixModal(result.pix.qrcode, result.pix.qrcode_text, amount);
+        } else if (result.payment_url) {
+            // Redirecionar para página de pagamento do GhostsPay
+            window.open(result.payment_url, '_blank');
+            this.showNotification('✅ Redirecionando para pagamento...', 'success');
+        } else {
+            this.showNotification('✅ Pagamento processado com sucesso!', 'success');
+        }
+
+        // Limpar carrinho após sucesso
+        this.cart = [];
+        this.saveCart();
+        this.toggleCart();
+    }
+
+    // ===== MANIPULAR ERROS DO GHOSTSPAY =====
+    handleGhostsPayError(status, errorText) {
+        let errorMessage = '❌ Erro no processamento do pagamento';
+        
+        switch (status) {
+            case 400:
+                errorMessage = '📋 Dados inválidos no pagamento';
+                break;
+            case 401:
+                errorMessage = '🔐 Erro de autenticação - verifique as credenciais';
+                break;
+            case 422:
+                errorMessage = '⚙️ Erro de validação dos dados';
+                break;
+            default:
+                try {
+                    const errorData = JSON.parse(errorText);
+                    errorMessage = `❌ ${errorData.message || errorText}`;
+                } catch {
+                    errorMessage = `❌ Erro ${status}: ${errorText}`;
+                }
+        }
+        
+        this.showNotification(errorMessage, 'error');
+    }
+
+    // ===== MODAL PIX REAL DO GHOSTSPAY =====
+    showRealPixModal(qrCodeUrl, pixCode, amount) {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay active';
         modal.innerHTML = `
@@ -301,18 +419,44 @@ class TechPartsPro {
                         <p style="font-size: 1.2rem; margin-bottom: 1rem; font-weight: 600;">
                             Valor: <span style="color: #10b981;">R$ ${amount.toFixed(2)}</span>
                         </p>
-                        <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
-                            <p style="font-family: monospace; font-size: 0.9rem; word-break: break-all;">
-                                00020126580014br.gov.bcb.pix0136aae6e021-5a32-4a89-8a9d-1234567890125204000053039865406${amount.toFixed(2)}5802BR5925TECHPARTS PRO LTDA6008SAO PAULO62290525RP1234567890123456789012306304
+                        
+                        <!-- QR Code REAL do GhostsPay -->
+                        <div style="margin: 1rem 0;">
+                            <img src="${qrCodeUrl}" 
+                                 alt="QR Code PIX" 
+                                 style="max-width: 256px; width: 100%; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: white;">
+                            <p style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">
+                                Escaneie com seu app bancário
                             </p>
                         </div>
-                        <p style="margin-top: 1rem; color: #6b7280; font-size: 0.9rem;">
-                            Copie o código PIX e cole em seu app bancário
-                        </p>
+                        
+                        <!-- Código PIX Copiável -->
+                        <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #e2e8f0;">
+                            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;">Código PIX (copie e cole):</p>
+                            <div style="display: flex; gap: 0.5rem;">
+                                <input type="text" 
+                                       value="${pixCode}" 
+                                       readonly 
+                                       style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.8rem;"
+                                       id="pix-code-input">
+                                <button onclick="app.copyPixCode()" 
+                                        style="padding: 0.5rem 1rem; background: #3b82f6; color: white; border: none; border-radius: 6px; cursor: pointer;">
+                                    Copiar
+                                </button>
+                            </div>
+                        </div>
+                        
+                        <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #fcd34d;">
+                            <p style="font-size: 0.8rem; color: #92400e; margin: 0;">
+                                ⚠️ <strong>Pagamento REAL:</strong> Este é um pagamento real através do GhostsPay. 
+                                O valor será debitado da sua conta.
+                            </p>
+                        </div>
+                        
                         <button onclick="this.closest('.modal-overlay').remove()" 
-                                class="btn-auth-submit" style="margin-top: 2rem;">
+                                class="btn-auth-submit" style="margin-top: 1rem;">
                             <i class="fas fa-check"></i>
-                            OK, entendi
+                            Entendido
                         </button>
                     </div>
                 </div>
@@ -321,6 +465,24 @@ class TechPartsPro {
         
         document.body.appendChild(modal);
         document.body.style.overflow = 'hidden';
+    }
+
+    // ===== COPIAR CÓDIGO PIX =====
+    copyPixCode() {
+        const pixInput = document.getElementById('pix-code-input');
+        if (pixInput) {
+            pixInput.select();
+            pixInput.setSelectionRange(0, 99999);
+            navigator.clipboard.writeText(pixInput.value)
+                .then(() => {
+                    this.showNotification('📋 Código PIX copiado!', 'success');
+                })
+                .catch(() => {
+                    // Fallback para navegadores antigos
+                    document.execCommand('copy');
+                    this.showNotification('📋 Código PIX copiado!', 'success');
+                });
+        }
     }
 
     // ===== SISTEMA DE FILTROS =====
