@@ -9,7 +9,6 @@ class AuthSystem {
     }
 
     init() {
-        // Verificar se usuário está logado ao carregar a página
         const savedUser = localStorage.getItem('currentUser');
         if (savedUser) {
             this.currentUser = JSON.parse(savedUser);
@@ -19,7 +18,6 @@ class AuthSystem {
 
     async register(email, password, name) {
         try {
-            // Simular registro (em produção, integrar com backend)
             const user = {
                 id: Date.now(),
                 email: email,
@@ -27,14 +25,12 @@ class AuthSystem {
                 createdAt: new Date().toISOString()
             };
             
-            // Salvar no localStorage
             localStorage.setItem('user_' + email, JSON.stringify({
                 email: email,
-                password: password, // Em produção, isso seria hash
+                password: password,
                 userData: user
             }));
             
-            // Fazer login automático
             this.login(email, password);
             
             return { success: true, user: user };
@@ -45,7 +41,6 @@ class AuthSystem {
 
     async login(email, password) {
         try {
-            // Verificar credenciais
             const userStorage = localStorage.getItem('user_' + email);
             
             if (!userStorage) {
@@ -58,7 +53,6 @@ class AuthSystem {
                 return { success: false, message: 'Senha incorreta' };
             }
 
-            // Login bem-sucedido
             this.currentUser = userData.userData;
             localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
             this.updateUI();
@@ -83,17 +77,14 @@ class AuthSystem {
         const logoutBtn = document.getElementById('logoutBtn');
 
         if (this.currentUser) {
-            // Usuário logado
             if (loginBtn) loginBtn.style.display = 'none';
             if (userMenu) userMenu.style.display = 'block';
             if (userName) userName.textContent = this.currentUser.name;
             
-            // Adicionar evento de logout
             if (logoutBtn) {
                 logoutBtn.onclick = () => this.logout();
             }
         } else {
-            // Usuário não logado
             if (loginBtn) loginBtn.style.display = 'block';
             if (userMenu) userMenu.style.display = 'none';
         }
@@ -104,7 +95,6 @@ class AuthSystem {
     }
 
     showNotification(message, type = 'info') {
-        // Criar notificação
         const notification = document.createElement('div');
         notification.className = `notification ${type}`;
         notification.innerHTML = `
@@ -112,7 +102,6 @@ class AuthSystem {
             <button onclick="this.parentElement.remove()">×</button>
         `;
         
-        // Estilos da notificação
         notification.style.cssText = `
             position: fixed;
             top: 20px;
@@ -131,7 +120,6 @@ class AuthSystem {
         
         document.body.appendChild(notification);
         
-        // Auto-remover após 5 segundos
         setTimeout(() => {
             if (notification.parentElement) {
                 notification.remove();
@@ -298,7 +286,6 @@ class TechPartsApp {
     }
 
     async handleLogin(e) {
-        const formData = new FormData(e.target);
         const email = e.target.querySelector('input[type="email"]').value;
         const password = e.target.querySelector('input[type="password"]').value;
         
@@ -454,7 +441,6 @@ class TechPartsApp {
     }
 
     showCartModal() {
-        // Criar ou atualizar modal do carrinho
         let modal = document.getElementById('cartModal');
         
         if (!modal) {
@@ -474,17 +460,14 @@ class TechPartsApp {
             `;
             document.body.appendChild(modal);
 
-            // Fechar modal
             modal.querySelector('.close').addEventListener('click', () => {
                 modal.style.display = 'none';
             });
 
-            // Finalizar compra
             modal.querySelector('#checkoutBtn').addEventListener('click', () => {
                 this.showPaymentModal();
             });
 
-            // Fechar ao clicar fora
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -492,10 +475,7 @@ class TechPartsApp {
             });
         }
 
-        // Atualizar itens do carrinho
         this.updateCartItems();
-        
-        // Mostrar modal
         modal.style.display = 'block';
     }
 
@@ -531,7 +511,6 @@ class TechPartsApp {
 
         container.innerHTML = itemsHTML;
 
-        // Calcular total
         const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         if (totalElement) {
             totalElement.textContent = total.toFixed(2);
@@ -602,12 +581,10 @@ class TechPartsApp {
             `;
             document.body.appendChild(modal);
 
-            // Fechar modal
             modal.querySelector('.close').addEventListener('click', () => {
                 modal.style.display = 'none';
             });
 
-            // Selecionar método de pagamento
             modal.querySelectorAll('.payment-method').forEach(method => {
                 method.addEventListener('click', () => {
                     modal.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
@@ -615,7 +592,6 @@ class TechPartsApp {
                 });
             });
 
-            // Confirmar pagamento
             modal.querySelector('#confirmPayment').addEventListener('click', () => {
                 const selectedMethod = modal.querySelector('.payment-method.selected');
                 if (!selectedMethod) {
@@ -627,7 +603,6 @@ class TechPartsApp {
                 this.processPayment(method, total);
             });
 
-            // Fechar ao clicar fora
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -635,10 +610,7 @@ class TechPartsApp {
             });
         }
 
-        // Atualizar total
         modal.querySelector('.payment-total strong').textContent = `Total: R$ ${total.toFixed(2)}`;
-        
-        // Mostrar modal
         modal.style.display = 'block';
     }
 
@@ -712,7 +684,6 @@ class TechPartsApp {
         document.body.appendChild(resultModal);
         resultModal.style.display = 'block';
 
-        // Fechar modal
         resultModal.querySelector('.close').addEventListener('click', () => {
             resultModal.style.display = 'none';
             resultModal.remove();
@@ -725,7 +696,6 @@ class TechPartsApp {
             }
         });
 
-        // Limpar carrinho se pagamento for bem-sucedido
         if (result.success) {
             this.cart = [];
             this.saveCart();
@@ -742,7 +712,6 @@ class TechPartsApp {
         navigator.clipboard.writeText(code).then(() => {
             this.showNotification('Código PIX copiado!', 'success');
         }).catch(() => {
-            // Fallback para navegadores mais antigos
             const textArea = document.createElement('textarea');
             textArea.value = code;
             document.body.appendChild(textArea);
