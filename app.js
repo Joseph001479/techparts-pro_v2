@@ -1,3 +1,6 @@
+// ===== CONFIGURAÇÃO DO BACKEND REAL =====
+const BACKEND_URL = "https://techparts-pro-api.onrender.com"; // URL do seu backend no Render
+
 // ===== TECHPARTS PRO - SISTEMA COMPLETO PARA GITHUB PAGES =====
 
 class TechPartsPro {
@@ -253,8 +256,8 @@ class TechPartsPro {
         }
     }
 
-    // ===== SISTEMA DE PAGAMENTO SIMULADO (GitHub Pages) =====
-    checkout() {
+    // ===== SISTEMA DE PAGAMENTO REAL COM GHOSTSPAY =====
+    async checkout() {
         if (this.cart.length === 0) {
             this.showNotification('🛒 Seu carrinho está vazio!', 'warning');
             return;
@@ -266,26 +269,68 @@ class TechPartsPro {
             return;
         }
 
-        this.showNotification('⏳ Processando pagamento...', 'info');
-        
-        // Simular processamento (GitHub Pages não suporta backend)
-        setTimeout(() => {
+        try {
+            this.showNotification('⏳ Conectando com GhostsPay...', 'info');
+
+            // Calcular total
             const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
             
-            if (paymentMethod.value === 'PIX') {
-                this.showPixModal(total);
+            const formData = new FormData();
+            formData.append('payment_method', paymentMethod.value);
+            formData.append('amount', total);
+            formData.append('items', JSON.stringify(this.cart.map(item => ({
+                id: item.id,
+                name: item.name,
+                price: item.price,
+                quantity: item.quantity
+            }))));
+
+            console.log('📤 Enviando para backend...', {
+                payment_method: paymentMethod.value,
+                amount: total,
+                items: this.cart
+            });
+
+            const response = await fetch(`${BACKEND_URL}/api/payment/checkout`, {
+                method: 'POST',
+                body: formData
+            });
+
+            const result = await response.json();
+            console.log('📥 Resposta do backend:', result);
+
+            if (result.success) {
+                this.handleRealPaymentSuccess(result, paymentMethod.value, total);
             } else {
-                this.showNotification(`✅ Pedido confirmado! Método: ${paymentMethod.value}`, 'success');
+                this.showNotification(`❌ ${result.message}`, 'error');
+                console.error('Erro no pagamento:', result);
             }
-            
-            // Limpar carrinho
-            this.cart = [];
-            this.saveCart();
-            this.toggleCart();
-        }, 2000);
+
+        } catch (error) {
+            console.error('💥 Erro na requisição:', error);
+            this.showNotification('❌ Erro de conexão com o servidor', 'error');
+        }
     }
 
-    showPixModal(amount) {
+    // ===== MANIPULAR SUCESSO DO PAGAMENTO REAL =====
+    handleRealPaymentSuccess(result, paymentMethod, amount) {
+        this.showNotification('✅ Pagamento criado com sucesso!', 'success');
+        
+        if (paymentMethod.toUpperCase() === 'PIX' && result.qr_code) {
+            this.showRealPixModal(result.qr_code, result.pix_code, amount);
+        } else if (result.payment_url) {
+            window.open(result.payment_url, '_blank');
+            this.showNotification('🌐 Redirecionando para pagamento...', 'info');
+        }
+
+        // Limpar carrinho
+        this.cart = [];
+        this.saveCart();
+        this.toggleCart();
+    }
+
+    // ===== MODAL PIX REAL =====
+    showRealPixModal(qrCodeUrl, pixCode, amount) {
         const modal = document.createElement('div');
         modal.className = 'modal-overlay active';
         modal.innerHTML = `
@@ -302,25 +347,22 @@ class TechPartsPro {
                             Valor: <span style="color: #10b981;">R$ ${amount.toFixed(2)}</span>
                         </p>
                         
-                        <!-- QR Code Simulado -->
+                        <!-- QR Code REAL do GhostsPay -->
                         <div style="margin: 1rem 0;">
-                            <div style="width: 256px; height: 256px; background: #f3f4f6; border: 2px solid #e5e7eb; border-radius: 12px; display: flex; align-items: center; justify-content: center; margin: 0 auto;">
-                                <div style="text-align: center; color: #6b7280;">
-                                    <i class="fas fa-qrcode" style="font-size: 3rem; margin-bottom: 1rem;"></i>
-                                    <p>QR Code Simulado</p>
-                                </div>
-                            </div>
+                            <img src="${qrCodeUrl}" 
+                                 alt="QR Code PIX" 
+                                 style="max-width: 256px; width: 100%; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: white;">
                             <p style="font-size: 0.9rem; color: #6b7280; margin-top: 0.5rem;">
-                                Demonstração - GitHub Pages
+                                Escaneie com seu app bancário
                             </p>
                         </div>
                         
-                        <!-- Código PIX Simulado -->
+                        <!-- Código PIX REAL -->
                         <div style="background: #f8fafc; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #e2e8f0;">
-                            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;">Código PIX (simulado):</p>
+                            <p style="font-size: 0.8rem; color: #64748b; margin-bottom: 0.5rem;">Código PIX (copie e cole):</p>
                             <div style="display: flex; gap: 0.5rem;">
                                 <input type="text" 
-                                       value="00020126580014br.gov.bcb.pix0136techparts-pro-demo-${Date.now()}5204000053039865406${amount.toFixed(2)}5802BR5925TECHPARTS PRO6008SAO PAULO6304" 
+                                       value="${pixCode}" 
                                        readonly 
                                        style="flex: 1; padding: 0.5rem; border: 1px solid #d1d5db; border-radius: 6px; font-family: monospace; font-size: 0.8rem;"
                                        id="pix-code-input">
@@ -331,10 +373,9 @@ class TechPartsPro {
                             </div>
                         </div>
                         
-                        <div style="background: #fffbeb; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #fcd34d;">
-                            <p style="font-size: 0.8rem; color: #92400e; margin: 0;">
-                                ⚠️ <strong>DEMONSTRAÇÃO:</strong> Este é um ambiente de testes no GitHub Pages. 
-                                Para pagamentos reais, utilize a versão com backend.
+                        <div style="background: #dcfce7; padding: 1rem; border-radius: 8px; margin: 1rem 0; border: 1px solid #22c55e;">
+                            <p style="font-size: 0.8rem; color: #166534; margin: 0;">
+                                ✅ <strong>PAGAMENTO REAL:</strong> QR Code válido gerado pelo GhostsPay
                             </p>
                         </div>
                         
