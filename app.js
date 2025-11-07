@@ -1,316 +1,32 @@
-// ===== CONFIGURAÇÃO DO BACKEND REAL =====
+// ===== CONFIGURAÇÃO DO BACKEND =====
 const BACKEND_URL = "https://techparts-pro-v2.onrender.com";
-
-// ===== SISTEMA DE AUTENTICAÇÃO =====
-class AuthSystem {
-    constructor() {
-        this.currentUser = null;
-        this.init();
-    }
-
-    init() {
-        const savedUser = localStorage.getItem('currentUser');
-        if (savedUser) {
-            this.currentUser = JSON.parse(savedUser);
-            this.updateUI();
-        }
-    }
-
-    async register(email, password, name) {
-        try {
-            const user = {
-                id: Date.now(),
-                email: email,
-                name: name,
-                createdAt: new Date().toISOString()
-            };
-            
-            localStorage.setItem('user_' + email, JSON.stringify({
-                email: email,
-                password: password,
-                userData: user
-            }));
-            
-            this.login(email, password);
-            
-            return { success: true, user: user };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    async login(email, password) {
-        try {
-            const userStorage = localStorage.getItem('user_' + email);
-            
-            if (!userStorage) {
-                return { success: false, message: 'Usuário não encontrado' };
-            }
-
-            const userData = JSON.parse(userStorage);
-            
-            if (userData.password !== password) {
-                return { success: false, message: 'Senha incorreta' };
-            }
-
-            this.currentUser = userData.userData;
-            localStorage.setItem('currentUser', JSON.stringify(this.currentUser));
-            this.updateUI();
-            
-            return { success: true, user: this.currentUser };
-        } catch (error) {
-            return { success: false, message: error.message };
-        }
-    }
-
-    logout() {
-        this.currentUser = null;
-        localStorage.removeItem('currentUser');
-        this.updateUI();
-        this.showNotification('Logout realizado com sucesso!', 'success');
-    }
-
-    updateUI() {
-        const loginBtn = document.getElementById('loginBtn');
-        const userMenu = document.getElementById('userMenu');
-        const userName = document.getElementById('userName');
-        const logoutBtn = document.getElementById('logoutBtn');
-
-        if (this.currentUser) {
-            if (loginBtn) loginBtn.style.display = 'none';
-            if (userMenu) userMenu.style.display = 'block';
-            if (userName) userName.textContent = this.currentUser.name;
-            
-            if (logoutBtn) {
-                logoutBtn.onclick = () => this.logout();
-            }
-        } else {
-            if (loginBtn) loginBtn.style.display = 'block';
-            if (userMenu) userMenu.style.display = 'none';
-        }
-    }
-
-    isLoggedIn() {
-        return this.currentUser !== null;
-    }
-
-    showNotification(message, type = 'info') {
-        const notification = document.createElement('div');
-        notification.className = `notification ${type}`;
-        notification.innerHTML = `
-            <span>${message}</span>
-            <button onclick="this.parentElement.remove()">×</button>
-        `;
-        
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: ${type === 'success' ? '#4CAF50' : type === 'error' ? '#f44336' : '#2196F3'};
-            color: white;
-            padding: 15px 20px;
-            border-radius: 5px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-            z-index: 10000;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            max-width: 400px;
-        `;
-        
-        document.body.appendChild(notification);
-        
-        setTimeout(() => {
-            if (notification.parentElement) {
-                notification.remove();
-            }
-        }, 5000);
-    }
-}
-
-// ===== SISTEMA DE PAGAMENTO =====
-class PaymentSystem {
-    constructor() {
-        this.backendUrl = BACKEND_URL;
-    }
-
-    async processPayment(paymentData) {
-        try {
-            console.log('💰 Iniciando pagamento:', paymentData);
-            
-            const response = await fetch(`${this.backendUrl}/api/payment/checkout`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: new URLSearchParams({
-                    payment_method: paymentData.method,
-                    amount: paymentData.amount,
-                    items: JSON.stringify(paymentData.items),
-                    customer_name: paymentData.customer_name || 'Cliente TechParts',
-                    customer_email: paymentData.customer_email || 'cliente@techparts.com'
-                })
-            });
-
-            const result = await response.json();
-            console.log('📦 Resposta do pagamento:', result);
-
-            return result;
-        } catch (error) {
-            console.error('💥 Erro no pagamento:', error);
-            return {
-                success: false,
-                message: 'Erro de conexão: ' + error.message
-            };
-        }
-    }
-}
 
 // ===== SISTEMA PRINCIPAL =====
 class TechPartsApp {
     constructor() {
-        this.auth = new AuthSystem();
-        this.payment = new PaymentSystem();
         this.cart = JSON.parse(localStorage.getItem('techparts_cart')) || [];
         this.products = [];
         this.init();
     }
 
     init() {
+        console.log('🚀 TechParts App Iniciado');
         this.loadProducts();
         this.setupEventListeners();
         this.updateCartCount();
-        console.log('🛒 Carrinho inicial:', this.cart);
     }
 
     setupEventListeners() {
-        // Login/Logout
+        // Botão do carrinho
+        const cartBtn = document.getElementById('cartBtn');
+        if (cartBtn) {
+            cartBtn.addEventListener('click', () => this.showCartModal());
+        }
+
+        // Botão de login
         const loginBtn = document.getElementById('loginBtn');
         if (loginBtn) {
-            loginBtn.addEventListener('click', () => this.showAuthModal('login'));
-        }
-
-        // Modal de autenticação
-        this.setupAuthModal();
-        
-        // Fechar modal quando clicar fora
-        const modal = document.getElementById('authModal');
-        if (modal) {
-            modal.addEventListener('click', (e) => {
-                if (e.target === modal) {
-                    this.hideAuthModal();
-                }
-            });
-        }
-    }
-
-    setupAuthModal() {
-        // Criar modal de autenticação se não existir
-        if (!document.getElementById('authModal')) {
-            const modalHTML = `
-                <div id="authModal" class="modal">
-                    <div class="modal-content">
-                        <span class="close">&times;</span>
-                        <div id="authForms">
-                            <!-- Login Form -->
-                            <div id="loginForm" class="auth-form">
-                                <h2>Login</h2>
-                                <form id="loginFormElement">
-                                    <input type="email" placeholder="E-mail" required>
-                                    <input type="password" placeholder="Senha" required>
-                                    <button type="submit">Entrar</button>
-                                </form>
-                                <p>Não tem conta? <a href="#" onclick="app.showAuthModal('register')">Cadastre-se</a></p>
-                            </div>
-                            
-                            <!-- Register Form -->
-                            <div id="registerForm" class="auth-form" style="display: none;">
-                                <h2>Cadastro</h2>
-                                <form id="registerFormElement">
-                                    <input type="text" placeholder="Nome completo" required>
-                                    <input type="email" placeholder="E-mail" required>
-                                    <input type="password" placeholder="Senha" required>
-                                    <button type="submit">Cadastrar</button>
-                                </form>
-                                <p>Já tem conta? <a href="#" onclick="app.showAuthModal('login')">Faça login</a></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            `;
-            
-            document.body.insertAdjacentHTML('beforeend', modalHTML);
-            
-            // Adicionar eventos aos formulários
-            document.getElementById('loginFormElement').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleLogin(e);
-            });
-            
-            document.getElementById('registerFormElement').addEventListener('submit', (e) => {
-                e.preventDefault();
-                this.handleRegister(e);
-            });
-            
-            // Fechar modal
-            document.querySelector('#authModal .close').addEventListener('click', () => {
-                this.hideAuthModal();
-            });
-        }
-    }
-
-    showAuthModal(type = 'login') {
-        const modal = document.getElementById('authModal');
-        const loginForm = document.getElementById('loginForm');
-        const registerForm = document.getElementById('registerForm');
-        
-        if (type === 'login') {
-            loginForm.style.display = 'block';
-            registerForm.style.display = 'none';
-        } else {
-            loginForm.style.display = 'none';
-            registerForm.style.display = 'block';
-        }
-        
-        modal.style.display = 'block';
-    }
-
-    hideAuthModal() {
-        const modal = document.getElementById('authModal');
-        modal.style.display = 'none';
-        
-        // Limpar formulários
-        document.querySelectorAll('#authForms input').forEach(input => {
-            input.value = '';
-        });
-    }
-
-    async handleLogin(e) {
-        const email = e.target.querySelector('input[type="email"]').value;
-        const password = e.target.querySelector('input[type="password"]').value;
-        
-        const result = await this.auth.login(email, password);
-        
-        if (result.success) {
-            this.auth.showNotification(`Bem-vindo, ${result.user.name}!`, 'success');
-            this.hideAuthModal();
-        } else {
-            this.auth.showNotification(result.message, 'error');
-        }
-    }
-
-    async handleRegister(e) {
-        const name = e.target.querySelector('input[type="text"]').value;
-        const email = e.target.querySelector('input[type="email"]').value;
-        const password = e.target.querySelector('input[type="password"]').value;
-        
-        const result = await this.auth.register(email, password, name);
-        
-        if (result.success) {
-            this.auth.showNotification(`Conta criada com sucesso! Bem-vindo, ${result.user.name}!`, 'success');
-            this.hideAuthModal();
-        } else {
-            this.auth.showNotification(result.message, 'error');
+            loginBtn.addEventListener('click', () => this.showLoginModal());
         }
     }
 
@@ -322,7 +38,7 @@ class TechPartsApp {
                 category: "Processadores",
                 price: 3299.99,
                 rating: 4.9,
-                description: "24 núcleos, 32 threads, até 6.0GHz - O melhor para gaming e produtividade",
+                description: "24 núcleos, 32 threads, até 6.0GHz",
                 features: ["24 Núcleos", "32 Threads", "Até 6.0GHz"]
             },
             {
@@ -331,7 +47,7 @@ class TechPartsApp {
                 category: "Processadores",
                 price: 2899.99,
                 rating: 4.8,
-                description: "16 núcleos, 32 threads, 5.7GHz - Performance excepcional",
+                description: "16 núcleos, 32 threads, 5.7GHz",
                 features: ["16 Núcleos", "32 Threads", "5.7GHz"]
             },
             {
@@ -340,7 +56,7 @@ class TechPartsApp {
                 category: "Placas de Vídeo", 
                 price: 8999.99,
                 rating: 4.9,
-                description: "24GB GDDR6X, DLSS 3, Ray Tracing - A mais poderosa do mundo",
+                description: "24GB GDDR6X, DLSS 3, Ray Tracing",
                 features: ["24GB GDDR6X", "DLSS 3", "Ray Tracing"]
             },
             {
@@ -349,7 +65,7 @@ class TechPartsApp {
                 category: "Memórias RAM",
                 price: 899.99,
                 rating: 4.7,
-                description: "32GB DDR5 5600MHz - RGB Sync - Latência ultra-baixa", 
+                description: "32GB DDR5 5600MHz - RGB Sync", 
                 features: ["32GB DDR5", "5600MHz", "RGB Sync"]
             },
             {
@@ -358,7 +74,7 @@ class TechPartsApp {
                 category: "Processadores",
                 price: 2499.99,
                 rating: 4.7,
-                description: "20 núcleos, 28 threads - Excelente custo-benefício",
+                description: "20 núcleos, 28 threads",
                 features: ["20 Núcleos", "28 Threads", "Alta Performance"]
             },
             {
@@ -367,7 +83,7 @@ class TechPartsApp {
                 category: "Processadores",
                 price: 2199.99,
                 rating: 4.8,
-                description: "8 núcleos com tecnologia 3D V-Cache - Ideal para gaming",
+                description: "8 núcleos com tecnologia 3D V-Cache",
                 features: ["8 Núcleos", "16 Threads", "3D V-Cache"]
             }
         ];
@@ -417,7 +133,7 @@ class TechPartsApp {
 
         this.saveCart();
         this.updateCartCount();
-        this.showNotification(`${product.name} adicionado ao carrinho!`, 'success');
+        this.showNotification(`${product.name} adicionado ao carrinho!`);
     }
 
     removeFromCart(productId) {
@@ -460,14 +176,17 @@ class TechPartsApp {
             `;
             document.body.appendChild(modal);
 
+            // Fechar modal
             modal.querySelector('.close').addEventListener('click', () => {
                 modal.style.display = 'none';
             });
 
+            // Finalizar compra
             modal.querySelector('#checkoutBtn').addEventListener('click', () => {
                 this.showPaymentModal();
             });
 
+            // Fechar ao clicar fora
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -511,6 +230,7 @@ class TechPartsApp {
 
         container.innerHTML = itemsHTML;
 
+        // Calcular total
         const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
         if (totalElement) {
             totalElement.textContent = total.toFixed(2);
@@ -534,7 +254,7 @@ class TechPartsApp {
 
     showPaymentModal() {
         if (this.cart.length === 0) {
-            this.showNotification('Adicione produtos ao carrinho primeiro!', 'error');
+            this.showNotification('Adicione produtos ao carrinho primeiro!');
             return;
         }
 
@@ -581,10 +301,12 @@ class TechPartsApp {
             `;
             document.body.appendChild(modal);
 
+            // Fechar modal
             modal.querySelector('.close').addEventListener('click', () => {
                 modal.style.display = 'none';
             });
 
+            // Selecionar método de pagamento
             modal.querySelectorAll('.payment-method').forEach(method => {
                 method.addEventListener('click', () => {
                     modal.querySelectorAll('.payment-method').forEach(m => m.classList.remove('selected'));
@@ -592,10 +314,11 @@ class TechPartsApp {
                 });
             });
 
+            // Confirmar pagamento
             modal.querySelector('#confirmPayment').addEventListener('click', () => {
                 const selectedMethod = modal.querySelector('.payment-method.selected');
                 if (!selectedMethod) {
-                    this.showNotification('Selecione um método de pagamento!', 'error');
+                    this.showNotification('Selecione um método de pagamento!');
                     return;
                 }
                 
@@ -603,6 +326,7 @@ class TechPartsApp {
                 this.processPayment(method, total);
             });
 
+            // Fechar ao clicar fora
             modal.addEventListener('click', (e) => {
                 if (e.target === modal) {
                     modal.style.display = 'none';
@@ -610,31 +334,48 @@ class TechPartsApp {
             });
         }
 
+        // Atualizar total
         modal.querySelector('.payment-total strong').textContent = `Total: R$ ${total.toFixed(2)}`;
+        
+        // Mostrar modal
         modal.style.display = 'block';
     }
 
     async processPayment(method, amount) {
-        this.showNotification('Conectando com GhostsPay...', 'info');
+        this.showNotification('Processando pagamento...');
 
         try {
             const paymentData = {
                 method: method,
                 amount: amount,
                 items: this.cart,
-                customer_name: this.auth.currentUser ? this.auth.currentUser.name : 'Cliente TechParts',
-                customer_email: this.auth.currentUser ? this.auth.currentUser.email : 'cliente@techparts.com'
+                customer_name: 'Cliente TechParts',
+                customer_email: 'cliente@techparts.com'
             };
 
-            const result = await this.payment.processPayment(paymentData);
+            const response = await fetch(`${BACKEND_URL}/api/payment/checkout`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({
+                    payment_method: paymentData.method,
+                    amount: paymentData.amount,
+                    items: JSON.stringify(paymentData.items),
+                    customer_name: paymentData.customer_name,
+                    customer_email: paymentData.customer_email
+                })
+            });
+
+            const result = await response.json();
             
             if (result.success) {
                 this.showPaymentResult(result, method);
             } else {
-                this.showNotification(`Erro no pagamento: ${result.message}`, 'error');
+                this.showNotification(`Erro: ${result.message}`);
             }
         } catch (error) {
-            this.showNotification('Erro de conexão com o servidor', 'error');
+            this.showNotification('Erro de conexão');
             console.error('Erro:', error);
         }
     }
@@ -651,13 +392,13 @@ class TechPartsApp {
                     <h2>Pagamento via PIX</h2>
                     <div class="pix-container">
                         <img src="${result.qr_code}" alt="QR Code PIX" class="qr-code">
-                        <p class="pix-code-label">Código PIX (Copie e Cole):</p>
+                        <p class="pix-code-label">Código PIX:</p>
                         <div class="pix-code-container">
-                            <code class="pix-code">${result.pix_code || 'Código não disponível'}</code>
+                            <code class="pix-code">${result.pix_code || 'Código PIX'}</code>
                             <button onclick="app.copyPixCode('${result.pix_code}')">Copiar</button>
                         </div>
                     </div>
-                    <p>Escaneie o QR code ou copie o código para pagar no seu app bancário</p>
+                    <p>Escaneie o QR code para pagar</p>
                     <button onclick="this.closest('.modal').style.display='none'" class="checkout-btn">Fechar</button>
                 </div>
             `;
@@ -665,7 +406,7 @@ class TechPartsApp {
             resultHTML = `
                 <div class="payment-result">
                     <h2>Pagamento Processado!</h2>
-                    <p>ID da Transação: ${result.transaction_id}</p>
+                    <p>ID: ${result.transaction_id}</p>
                     <p>Valor: R$ ${result.amount}</p>
                     <button onclick="this.closest('.modal').style.display='none'" class="checkout-btn">Fechar</button>
                 </div>
@@ -684,6 +425,7 @@ class TechPartsApp {
         document.body.appendChild(resultModal);
         resultModal.style.display = 'block';
 
+        // Fechar modal
         resultModal.querySelector('.close').addEventListener('click', () => {
             resultModal.style.display = 'none';
             resultModal.remove();
@@ -696,6 +438,7 @@ class TechPartsApp {
             }
         });
 
+        // Limpar carrinho
         if (result.success) {
             this.cart = [];
             this.saveCart();
@@ -704,258 +447,160 @@ class TechPartsApp {
     }
 
     copyPixCode(code) {
-        if (!code || code === 'Código não disponível') {
-            this.showNotification('Código PIX não disponível para copiar', 'error');
-            return;
-        }
-
+        if (!code) return;
+        
         navigator.clipboard.writeText(code).then(() => {
-            this.showNotification('Código PIX copiado!', 'success');
-        }).catch(() => {
-            const textArea = document.createElement('textarea');
-            textArea.value = code;
-            document.body.appendChild(textArea);
-            textArea.select();
-            document.execCommand('copy');
-            document.body.removeChild(textArea);
-            this.showNotification('Código PIX copiado!', 'success');
+            this.showNotification('Código copiado!');
         });
     }
 
-    showNotification(message, type = 'info') {
-        this.auth.showNotification(message, type);
+    showLoginModal() {
+        let modal = document.getElementById('loginModal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'loginModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Login</h2>
+                    <div class="login-form">
+                        <input type="email" placeholder="E-mail" id="loginEmail">
+                        <input type="password" placeholder="Senha" id="loginPassword">
+                        <button onclick="app.handleLogin()">Entrar</button>
+                        <p style="text-align: center; margin-top: 15px;">
+                            Não tem conta? <a href="#" onclick="app.showRegisterModal()">Cadastre-se</a>
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            modal.querySelector('.close').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        modal.style.display = 'block';
+    }
+
+    showRegisterModal() {
+        let modal = document.getElementById('registerModal');
+        
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'registerModal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <span class="close">&times;</span>
+                    <h2>Cadastro</h2>
+                    <div class="register-form">
+                        <input type="text" placeholder="Nome completo" id="registerName">
+                        <input type="email" placeholder="E-mail" id="registerEmail">
+                        <input type="password" placeholder="Senha" id="registerPassword">
+                        <button onclick="app.handleRegister()">Cadastrar</button>
+                        <p style="text-align: center; margin-top: 15px;">
+                            Já tem conta? <a href="#" onclick="app.showLoginModal()">Faça login</a>
+                        </p>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+
+            modal.querySelector('.close').addEventListener('click', () => {
+                modal.style.display = 'none';
+            });
+
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.style.display = 'none';
+                }
+            });
+        }
+
+        // Fechar login modal
+        const loginModal = document.getElementById('loginModal');
+        if (loginModal) loginModal.style.display = 'none';
+        
+        modal.style.display = 'block';
+    }
+
+    handleLogin() {
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPassword').value;
+        
+        if (!email || !password) {
+            this.showNotification('Preencha todos os campos');
+            return;
+        }
+
+        // Simular login
+        localStorage.setItem('user', JSON.stringify({ email, name: 'Usuário' }));
+        this.showNotification('Login realizado com sucesso!');
+        
+        const modal = document.getElementById('loginModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    handleRegister() {
+        const name = document.getElementById('registerName').value;
+        const email = document.getElementById('registerEmail').value;
+        const password = document.getElementById('registerPassword').value;
+        
+        if (!name || !email || !password) {
+            this.showNotification('Preencha todos os campos');
+            return;
+        }
+
+        // Simular registro
+        localStorage.setItem('user', JSON.stringify({ email, name }));
+        this.showNotification('Cadastro realizado com sucesso!');
+        
+        const modal = document.getElementById('registerModal');
+        if (modal) modal.style.display = 'none';
+    }
+
+    showNotification(message) {
+        // Criar notificação simples
+        const notification = document.createElement('div');
+        notification.textContent = message;
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #4CAF50;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 5px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+            z-index: 10000;
+            max-width: 300px;
+        `;
+        
+        document.body.appendChild(notification);
+        
+        setTimeout(() => {
+            if (notification.parentElement) {
+                notification.remove();
+            }
+        }, 3000);
     }
 }
-
-// ===== ESTILOS CSS DINÂMICOS =====
-const injectStyles = () => {
-    const styles = `
-        <style>
-            .notification {
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: #4CAF50;
-                color: white;
-                padding: 15px 20px;
-                border-radius: 5px;
-                box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-                z-index: 10000;
-                display: flex;
-                align-items: center;
-                gap: 10px;
-                max-width: 400px;
-                animation: slideIn 0.3s ease;
-            }
-            
-            .notification.error { background: #f44336; }
-            .notification.info { background: #2196F3; }
-            .notification.warning { background: #ff9800; }
-            
-            .notification button {
-                background: none;
-                border: none;
-                color: white;
-                font-size: 18px;
-                cursor: pointer;
-                padding: 0;
-                width: 20px;
-                height: 20px;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-            
-            @keyframes slideIn {
-                from { transform: translateX(100%); opacity: 0; }
-                to { transform: translateX(0); opacity: 1; }
-            }
-            
-            .modal {
-                display: none;
-                position: fixed;
-                z-index: 1000;
-                left: 0;
-                top: 0;
-                width: 100%;
-                height: 100%;
-                background-color: rgba(0,0,0,0.5);
-            }
-            
-            .modal-content {
-                background-color: white;
-                margin: 5% auto;
-                padding: 30px;
-                border-radius: 10px;
-                width: 90%;
-                max-width: 500px;
-                max-height: 80vh;
-                overflow-y: auto;
-                position: relative;
-            }
-            
-            .close {
-                position: absolute;
-                right: 15px;
-                top: 15px;
-                font-size: 28px;
-                font-weight: bold;
-                cursor: pointer;
-                color: #666;
-            }
-            
-            .close:hover {
-                color: #000;
-            }
-            
-            .auth-form h2 {
-                margin-bottom: 20px;
-                text-align: center;
-            }
-            
-            .auth-form input {
-                width: 100%;
-                padding: 12px;
-                margin: 8px 0;
-                border: 1px solid #ddd;
-                border-radius: 5px;
-                box-sizing: border-box;
-            }
-            
-            .auth-form button {
-                width: 100%;
-                padding: 12px;
-                background: #2563eb;
-                color: white;
-                border: none;
-                border-radius: 5px;
-                cursor: pointer;
-                margin-top: 10px;
-            }
-            
-            .auth-form button:hover {
-                background: #1d4ed8;
-            }
-            
-            .auth-form p {
-                text-align: center;
-                margin-top: 15px;
-            }
-            
-            .auth-form a {
-                color: #2563eb;
-                text-decoration: none;
-            }
-            
-            .auth-form a:hover {
-                text-decoration: underline;
-            }
-            
-            .user-menu {
-                display: none;
-                align-items: center;
-                gap: 10px;
-            }
-            
-            .user-info {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-            }
-            
-            .logout-btn {
-                background: #dc2626;
-                color: white;
-                border: none;
-                padding: 8px 12px;
-                border-radius: 5px;
-                cursor: pointer;
-                font-size: 12px;
-            }
-            
-            .logout-btn:hover {
-                background: #b91c1c;
-            }
-            
-            .payment-methods {
-                margin: 20px 0;
-            }
-            
-            .payment-method {
-                display: flex;
-                align-items: center;
-                gap: 15px;
-                padding: 15px;
-                border: 2px solid #e5e7eb;
-                border-radius: 8px;
-                margin-bottom: 10px;
-                cursor: pointer;
-                transition: all 0.3s;
-            }
-            
-            .payment-method:hover {
-                border-color: #2563eb;
-            }
-            
-            .payment-method.selected {
-                border-color: #2563eb;
-                background-color: #f0f7ff;
-            }
-            
-            .payment-method span {
-                font-size: 24px;
-            }
-            
-            .qr-code {
-                width: 200px;
-                height: 200px;
-                margin: 0 auto;
-                display: block;
-            }
-            
-            .pix-code-container {
-                display: flex;
-                gap: 10px;
-                align-items: center;
-                margin: 15px 0;
-            }
-            
-            .pix-code {
-                flex: 1;
-                background: #f5f5f5;
-                padding: 10px;
-                border-radius: 5px;
-                font-family: monospace;
-                word-break: break-all;
-            }
-            
-            .pix-code-container button {
-                background: #2563eb;
-                color: white;
-                border: none;
-                padding: 10px 15px;
-                border-radius: 5px;
-                cursor: pointer;
-            }
-        </style>
-    `;
-    
-    document.head.insertAdjacentHTML('beforeend', styles);
-};
 
 // ===== INICIALIZAÇÃO =====
 let app;
 
 document.addEventListener('DOMContentLoaded', () => {
-    injectStyles();
     app = new TechPartsApp();
-    
-    // Cart button event listener
-    const cartBtn = document.getElementById('cartBtn');
-    if (cartBtn) {
-        cartBtn.addEventListener('click', () => app.showCartModal());
-    }
 });
 
-// Make app globally available
+// Tornar app global
 window.app = app;
