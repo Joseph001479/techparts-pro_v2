@@ -48,7 +48,7 @@ async def checkout_payment(
         # Converter items de JSON string para lista
         cart_items = json.loads(items)
         
-        # Preparar dados para GhostsPay
+        # Preparar dados para GhostsPay - FORMATO CORRETO
         transaction_data = {
             "amount": int(amount * 100),  # Em centavos
             "description": f"Pedido TechParts - {uuid.uuid4().hex[:8]}",
@@ -68,13 +68,13 @@ async def checkout_payment(
                 }
             },
             "items": [{
-                "title": item["name"],
+                "title": item["name"][:100],  # Limitar tamanho do título
                 "unitPrice": int(item["price"] * 100),
                 "quantity": item["quantity"],
                 "externalRef": str(item["id"])
             } for item in cart_items],
             "paymentMethod": payment_method.upper(),
-            "postbackUrl": "https://techparts-pro-api.onrender.com/payment/success",
+            "postbackUrl": "https://techparts-pro-v2.onrender.com/payment/success",
             "metadata": {
                 "store": "TechParts Pro",
                 "order_id": uuid.uuid4().hex[:8]
@@ -86,7 +86,7 @@ async def checkout_payment(
             transaction_data["installments"] = 1
 
         print("📤 Enviando para GhostsPay...")
-        print("Dados:", json.dumps(transaction_data, indent=2))
+        print("Dados enviados:", json.dumps(transaction_data, indent=2))
         
         # Fazer requisição REAL para GhostsPay
         headers = {
@@ -103,10 +103,19 @@ async def checkout_payment(
         )
         
         print(f"📥 Resposta GhostsPay: {response.status_code}")
+        print(f"📥 Conteúdo da resposta: {response.text}")
         
         if response.status_code in [200, 201]:
             result = response.json()
             print("✅ Pagamento criado com sucesso!")
+            print("🔍 Dados retornados:", json.dumps(result, indent=2))
+            
+            # DEBUG: Verificar estrutura da resposta
+            print("🎯 Estrutura da resposta GhostsPay:")
+            print("- pix:", "sim" if result.get("pix") else "não")
+            if result.get("pix"):
+                print("- qrcode:", "sim" if result["pix"].get("qrcode") else "não")
+                print("- qrcode_text:", "sim" if result["pix"].get("qrcode_text") else "não")
             
             return JSONResponse({
                 "success": True,
@@ -115,7 +124,7 @@ async def checkout_payment(
                 "pix_code": result.get("pix", {}).get("qrcode_text"),
                 "transaction_id": result.get("id"),
                 "amount": amount,
-                "response_data": result
+                "response_data": result  # Incluir dados completos para debug
             })
         else:
             error_msg = f"Erro {response.status_code}: {response.text}"
