@@ -1,5 +1,5 @@
 // ===== CONFIGURAÇÃO DO BACKEND REAL =====
-const BACKEND_URL = "https://techparts-pro-api.onrender.com"; // URL do seu backend no Render
+const BACKEND_URL = "https://techparts-pro-v2.onrender.com";
 
 // ===== TECHPARTS PRO - SISTEMA COMPLETO PARA GITHUB PAGES =====
 
@@ -677,3 +677,4 @@ window.scrollToProducts = () => app.scrollToProducts();
 window.checkout = () => app.checkout();
 
 console.log('🎉 TechParts Pro - Sistema carregado com sucesso!');
+
