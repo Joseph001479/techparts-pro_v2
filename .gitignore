@@ -1,0 +1,136 @@
+# =================================
+# PYTHON - Arquivos do Python
+# =================================
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+ENV/
+.env
+.venv
+pip-log.txt
+pip-delete-this-directory.txt
+.tox
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.log
+.pytest_cache/
+.hypothesis/
+
+# =================================
+# PYTHON - Distribuição / Instalação
+# =================================
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+__pycache__/
+
+# =================================
+# SISTEMA OPERACIONAL
+# =================================
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+.Spotlight-V100
+.Trashes
+
+# Linux
+*~
+
+# =================================
+# IDE / EDITORES
+# =================================
+# VS Code
+.vscode/
+*.swp
+*.swo
+*~
+
+# PyCharm
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Sublime Text
+*.sublime-*
+
+# =================================
+# AMBIENTES VIRTUAIS
+# =================================
+# Virtualenv
+venv/
+ENV/
+
+# Conda
+*.conda
+
+# =================================
+# LOGS E BACKUPS
+# =================================
+*.log
+logs/
+backups/
+*.bak
+*.backup
+
+# =================================
+# TEMPORÁRIOS
+# =================================
+*.tmp
+*.temp
+.cache/
+
+# =================================
+# BANCO DE DADOS
+# =================================
+*.db
+*.sqlite
+*.sqlite3
+
+# =================================
+# UPLOADS / DOWNLOADS
+# =================================
+uploads/
+downloads/
+media/
+
+# =================================
+# CONFIGURAÇÕES SENSÍVEIS
+# =================================
+# Nunca commit arquivos com senhas!
+config.py
+secrets.py
+*.key
+*.pem
+*.crt
+
+# =================================
+# GHOSTSPAY (se tiver)
+# =================================
+# Credenciais de API
+api_keys.txt
+.env.local

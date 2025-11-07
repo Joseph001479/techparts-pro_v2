@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TechParts Pro - Performance Máxima</title>
+    
+    <!-- SEO -->
+    <meta name="description" content="TechParts Pro - Loja premium de componentes para PC. Performance máxima com garantia e suporte especializado.">
+    
+    <!-- Styles -->
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="font-sans antialiased">
+    <!-- Loading Screen -->
+    <div id="loading" class="loading-screen">
+        <div class="loading-content">
+            <div class="loading-logo">
+                <i class="fas fa-microchip"></i>
+                <span>TechParts Pro</span>
+            </div>
+            <div class="loading-spinner"></div>
+        </div>
+    </div>
+
+    <!-- Header -->
+    <header class="header">
+        <nav class="nav container">
+            <!-- Logo -->
+            <a href="#" class="logo">
+                <div class="logo-icon">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div class="logo-text">
+                    <span class="logo-primary">TechParts</span>
+                    <span class="logo-secondary">Pro</span>
+                </div>
+            </a>
+
+            <!-- Desktop Navigation -->
+            <div class="nav-main desktop-only">
+                <a href="#home" class="nav-link active">
+                    <i class="fas fa-home"></i>
+                    Início
+                </a>
+                <a href="#products" class="nav-link">
+                    <i class="fas fa-box"></i>
+                    Produtos
+                </a>
+                <div class="nav-dropdown">
+                    <button class="nav-link">
+                        <i class="fas fa-layer-group"></i>
+                        Categorias
+                        <i class="fas fa-chevron-down dropdown-arrow"></i>
+                    </button>
+                    <div class="dropdown-menu">
+                        <a href="#processadores" class="dropdown-item">
+                            <i class="fas fa-microchip"></i>
+                            Processadores
+                        </a>
+                        <a href="#placas-video" class="dropdown-item">
+                            <i class="fas fa-gamepad"></i>
+                            Placas de Vídeo
+                        </a>
+                        <a href="#memorias" class="dropdown-item">
+                            <i class="fas fa-memory"></i>
+                            Memórias
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Menu -->
+            <div class="nav-user desktop-only">
+                <div class="auth-buttons">
+                    <button class="btn-auth btn-login" onclick="showAuthModal('login')">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Entrar
+                    </button>
+                    <button class="btn-auth btn-register" onclick="showAuthModal('register')">
+                        <i class="fas fa-user-plus"></i>
+                        Cadastrar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Cart & Mobile Menu -->
+            <div class="nav-actions">
+                <div class="nav-cart">
+                    <button class="cart-btn" onclick="toggleCart()">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span class="cart-count" id="cart-count">0</span>
+                    </button>
+                </div>
+
+                <!-- Mobile Menu Button -->
+                <button class="mobile-menu-btn" onclick="toggleMobileMenu()">
+                    <i class="fas fa-bars"></i>
+                </button>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu-overlay" id="mobile-overlay">
+        <div class="mobile-menu">
+            <div class="mobile-header">
+                <div class="mobile-logo">
+                    <i class="fas fa-microchip"></i>
+                    <span>TechParts Pro</span>
+                </div>
+                <button class="mobile-close" onclick="toggleMobileMenu()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <div class="mobile-user">
+                <div class="mobile-auth-buttons">
+                    <button class="btn-mobile-auth btn-mobile-login" onclick="showAuthModal('login'); toggleMobileMenu();">
+                        <i class="fas fa-sign-in-alt"></i>
+                        Fazer Login
+                    </button>
+                    <button class="btn-mobile-auth btn-mobile-register" onclick="showAuthModal('register'); toggleMobileMenu();">
+                        <i class="fas fa-user-plus"></i>
+                        Criar Conta
+                    </button>
+                </div>
+            </div>
+
+            <nav class="mobile-nav">
+                <a href="#home" class="mobile-nav-link active" onclick="toggleMobileMenu()">
+                    <i class="fas fa-home"></i>
+                    Início
+                </a>
+                <a href="#products" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                    <i class="fas fa-box"></i>
+                    Todos os Produtos
+                </a>
+                
+                <div class="mobile-nav-section">
+                    <div class="mobile-nav-title">Categorias</div>
+                    <a href="#processadores" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                        <i class="fas fa-microchip"></i>
+                        Processadores
+                    </a>
+                    <a href="#placas-video" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                        <i class="fas fa-gamepad"></i>
+                        Placas de Vídeo
+                    </a>
+                    <a href="#memorias" class="mobile-nav-link" onclick="toggleMobileMenu()">
+                        <i class="fas fa-memory"></i>
+                        Memórias RAM
+                    </a>
+                </div>
+            </nav>
+        </div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Hero Section -->
+        <section class="hero-section" id="home">
+            <div class="hero-background">
+                <div class="hero-overlay"></div>
+            </div>
+            <div class="container">
+                <div class="hero-content">
+                    <div class="hero-badge">
+                        <i class="fas fa-rocket"></i>
+                        Premium Performance
+                    </div>
+                    <h1 class="hero-title">
+                        Monte seu PC dos
+                        <span class="hero-highlight">sonhos</span>
+                    </h1>
+                    <p class="hero-description">
+                        Componentes de alta performance selecionados para gamers, criadores e profissionais. 
+                        Qualidade premium com garantia e suporte especializado.
+                    </p>
+                    <div class="hero-actions">
+                        <a href="#products" class="btn-hero btn-primary">
+                            <i class="fas fa-shopping-bag"></i>
+                            Explorar Produtos
+                        </a>
+                        <button class="btn-hero btn-secondary" onclick="scrollToProducts()">
+                            <i class="fas fa-play-circle"></i>
+                            Ver Destaques
+                        </button>
+                    </div>
+                    <div class="hero-stats">
+                        <div class="stat">
+                            <div class="stat-number">+500</div>
+                            <div class="stat-label">Clientes Satisfeitos</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">99.8%</div>
+                            <div class="stat-label">Avaliações Positivas</div>
+                        </div>
+                        <div class="stat">
+                            <div class="stat-number">24/7</div>
+                            <div class="stat-label">Suporte Premium</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Products Section -->
+        <section class="products-section" id="products">
+            <div class="container">
+                <div class="section-header">
+                    <h2 class="section-title">Produtos em Destaque</h2>
+                    <p class="section-subtitle">Componentes selecionados para performance máxima</p>
+                </div>
+
+                <!-- Categories -->
+                <div class="categories-filter">
+                    <a href="#all" class="category-btn active">
+                        <i class="fas fa-th"></i>
+                        Todos
+                    </a>
+                    <a href="#processadores" class="category-btn">
+                        <i class="fas fa-microchip"></i>
+                        Processadores
+                    </a>
+                    <a href="#placas-video" class="category-btn">
+                        <i class="fas fa-gamepad"></i>
+                        Placas de Vídeo
+                    </a>
+                    <a href="#memorias" class="category-btn">
+                        <i class="fas fa-memory"></i>
+                        Memórias
+                    </a>
+                </div>
+
+                <!-- Products Grid -->
+                <div class="products-grid" id="products-grid">
+                    <!-- Produtos carregados via JavaScript -->
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Auth Modal -->
+    <div class="modal-overlay" id="auth-modal">
+        <div class="modal-container">
+            <div class="modal-content">
+                <!-- Login Form -->
+                <div class="auth-form active" id="login-form">
+                    <div class="auth-header">
+                        <h3>Entrar na Conta</h3>
+                        <button class="modal-close" onclick="closeAuthModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form class="auth-form-content" onsubmit="handleAuth(event, 'login')">
+                        <div class="form-group">
+                            <label>E-mail</label>
+                            <input type="email" name="email" required placeholder="seu@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Senha</label>
+                            <input type="password" name="password" required placeholder="Sua senha">
+                        </div>
+                        <button type="submit" class="btn-auth-submit">
+                            <i class="fas fa-sign-in-alt"></i>
+                            Entrar na Conta
+                        </button>
+                    </form>
+                    <div class="auth-footer">
+                        <p>Não tem conta? <button type="button" onclick="showAuthModal('register')">Cadastre-se</button></p>
+                    </div>
+                </div>
+
+                <!-- Register Form -->
+                <div class="auth-form" id="register-form">
+                    <div class="auth-header">
+                        <h3>Criar Conta</h3>
+                        <button class="modal-close" onclick="closeAuthModal()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <form class="auth-form-content" onsubmit="handleAuth(event, 'register')">
+                        <div class="form-group">
+                            <label>Nome Completo</label>
+                            <input type="text" name="name" required placeholder="Seu nome completo">
+                        </div>
+                        <div class="form-group">
+                            <label>E-mail</label>
+                            <input type="email" name="email" required placeholder="seu@email.com">
+                        </div>
+                        <div class="form-group">
+                            <label>Senha</label>
+                            <input type="password" name="password" required placeholder="Mínimo 6 caracteres" minlength="6">
+                        </div>
+                        <button type="submit" class="btn-auth-submit">
+                            <i class="fas fa-user-plus"></i>
+                            Criar Minha Conta
+                        </button>
+                    </form>
+                    <div class="auth-footer">
+                        <p>Já tem conta? <button type="button" onclick="showAuthModal('login')">Fazer Login</button></p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Cart Sidebar -->
+    <div class="cart-sidebar" id="cart-sidebar">
+        <div class="cart-header">
+            <h3>Meu Carrinho</h3>
+            <button class="cart-close" onclick="toggleCart()">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+        <div class="cart-content">
+            <div class="cart-items" id="cart-items">
+                <div class="empty-cart">
+                    <i class="fas fa-shopping-cart"></i>
+                    <p>Seu carrinho está vazio</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Payment Methods -->
+        <div class="payment-section">
+            <h4 class="payment-title">Método de Pagamento</h4>
+            <div class="payment-methods">
+                <label class="payment-method">
+                    <input type="radio" name="paymentMethod" value="PIX" checked>
+                    <div class="payment-method-content">
+                        <div class="payment-icon">📱</div>
+                        <div class="payment-info">
+                            <div class="payment-name">PIX</div>
+                            <div class="payment-description">Pagamento instantâneo</div>
+                        </div>
+                    </div>
+                </label>
+                
+                <label class="payment-method">
+                    <input type="radio" name="paymentMethod" value="CARD">
+                    <div class="payment-method-content">
+                        <div class="payment-icon">💳</div>
+                        <div class="payment-info">
+                            <div class="payment-name">Cartão</div>
+                            <div class="payment-description">Crédito ou Débito</div>
+                        </div>
+                    </div>
+                </label>
+                
+                <label class="payment-method">
+                    <input type="radio" name="paymentMethod" value="BOLETO">
+                    <div class="payment-method-content">
+                        <div class="payment-icon">📄</div>
+                        <div class="payment-info">
+                            <div class="payment-name">Boleto</div>
+                            <div class="payment-description">Pagamento em 1-2 dias</div>
+                        </div>
+                    </div>
+                </label>
+            </div>
+        </div>
+        
+        <div class="cart-footer">
+            <div class="cart-total">
+                <span>Total:</span>
+                <span id="cart-total">R$ 0,00</span>
+            </div>
+            <button class="btn-checkout" onclick="checkout()">
+                <i class="fas fa-credit-card"></i>
+                Finalizar Compra
+            </button>
+        </div>
+    </div>
+    <div class="cart-overlay" id="cart-overlay" onclick="toggleCart()"></div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <div class="footer-logo">
+                        <i class="fas fa-microchip"></i>
+                        <span>TechParts Pro</span>
+                    </div>
+                    <p class="footer-description">
+                        Sua loja de confiança para componentes de PC de alta performance. 
+                        Qualidade, garantia e suporte especializado.
+                    </p>
+                    <div class="footer-social">
+                        <a href="#" class="social-link" aria-label="Facebook"><i class="fab fa-facebook"></i></a>
+                        <a href="#" class="social-link" aria-label="Instagram"><i class="fab fa-instagram"></i></a>
+                        <a href="#" class="social-link" aria-label="Twitter"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Produtos</h4>
+                    <ul class="footer-links">
+                        <li><a href="#processadores">Processadores</a></li>
+                        <li><a href="#placas-video">Placas de Vídeo</a></li>
+                        <li><a href="#memorias">Memórias RAM</a></li>
+                        <li><a href="#products">Todos os Produtos</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Suporte</h4>
+                    <ul class="footer-links">
+                        <li><a href="#">Central de Ajuda</a></li>
+                        <li><a href="#">Política de Trocas</a></li>
+                        <li><a href="#">Garantia</a></li>
+                        <li><a href="#">Contato</a></li>
+                    </ul>
+                </div>
+
+                <div class="footer-section">
+                    <h4>Contato</h4>
+                    <div class="footer-contact">
+                        <p><i class="fas fa-map-marker-alt"></i> Av. Paulista, 1000 - São Paulo, SP</p>
+                        <p><i class="fas fa-phone"></i> (11) 4002-8922</p>
+                        <p><i class="fas fa-envelope"></i> contato@techpartspro.com</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p>&copy; 2024 TechParts Pro. Todos os direitos reservados.</p>
+            </div>
+        </div>
+    </footer>
+
+    <!-- JavaScript -->
+    <script src="app.js"></script>
+</body>
+</html>
