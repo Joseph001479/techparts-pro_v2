@@ -2,28 +2,89 @@
 
 class TechPartsPro {
     constructor() {
+        this.products = [
+            {
+                "id": 1,
+                "name": "Intel Core i9-14900K",
+                "price": 3299.99,
+                "category": "processadores",
+                "image": "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&q=80",
+                "description": "24 núcleos, 32 threads, até 6.0GHz - O melhor para gaming e produtividade",
+                "specs": ["24 Núcleos", "32 Threads", "Até 6.0GHz", "Cache 36MB"],
+                "stock": 15,
+                "rating": 4.9
+            },
+            {
+                "id": 2,
+                "name": "AMD Ryzen 9 7950X", 
+                "price": 2899.99,
+                "category": "processadores", 
+                "image": "https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&q=80",
+                "description": "16 núcleos, 32 threads, 5.7GHz - Performance excepcional",
+                "specs": ["16 Núcleos", "32 Threads", "Até 5.7GHz", "Cache 80MB"],
+                "stock": 12,
+                "rating": 4.8
+            },
+            {
+                "id": 3,
+                "name": "NVIDIA RTX 4090",
+                "price": 8999.99,
+                "category": "placas-video",
+                "image": "https://images.unsplash.com/photo-1591488320449-011701bb6704?w=400&q=80",
+                "description": "24GB GDDR6X, DLSS 3, Ray Tracing - A mais poderosa do mundo",
+                "specs": ["24GB GDDR6X", "DLSS 3", "Ray Tracing", "4K Ultra"],
+                "stock": 8,
+                "rating": 4.9
+            },
+            {
+                "id": 4,
+                "name": "Corsair Vengeance RGB 32GB",
+                "price": 899.99,
+                "category": "memorias",
+                "image": "https://images.unsplash.com/photo-1587825140708-dfaf72ae4b04?w=400&q=80",
+                "description": "32GB DDR5 5600MHz - RGB Sync - Latência ultra-baixa",
+                "specs": ["32GB DDR5", "5600MHz", "RGB Sync", "Latência CL36"],
+                "stock": 25,
+                "rating": 4.7
+            },
+            {
+                "id": 5,
+                "name": "Intel Core i7-14700K",
+                "price": 2499.99,
+                "category": "processadores",
+                "image": "https://images.unsplash.com/photo-1591799264318-7e6ef8ddb7ea?w=400&q=80",
+                "description": "20 núcleos, 28 threads - Excelente custo-benefício",
+                "specs": ["20 Núcleos", "28 Threads", "Até 5.6GHz", "Cache 33MB"],
+                "stock": 18,
+                "rating": 4.7
+            },
+            {
+                "id": 6,
+                "name": "AMD Ryzen 7 7800X3D",
+                "price": 2199.99,
+                "category": "processadores",
+                "image": "https://images.unsplash.com/photo-1587202372634-32705e3bf49c?w=400&q=80",
+                "description": "8 núcleos com tecnologia 3D V-Cache - Ideal para gaming",
+                "specs": ["8 Núcleos", "16 Threads", "Tecnologia 3D V-Cache", "Cache 104MB"],
+                "stock": 10,
+                "rating": 4.8
+            }
+        ];
+        
+        this.cart = JSON.parse(localStorage.getItem('techparts_cart')) || [];
+        this.currentCategory = 'all';
         this.init();
     }
 
     init() {
         console.log('🚀 TechParts Pro - Sistema inicializado');
-        
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', () => this.setup());
-        } else {
-            this.setup();
-        }
-    }
-
-    setup() {
         this.setupLoadingScreen();
         this.setupEventListeners();
         this.setupScrollEffects();
-        this.setupCart();
         this.setupModals();
-        this.checkAuthStatus();
+        this.renderProducts();
+        this.updateCartUI();
         
-        // Inicializar componentes após um breve delay
         setTimeout(() => {
             this.setupAnimations();
         }, 100);
@@ -34,7 +95,6 @@ class TechPartsPro {
         const loadingScreen = document.getElementById('loading');
         if (!loadingScreen) return;
 
-        // Simular carregamento de recursos
         setTimeout(() => {
             loadingScreen.classList.add('loaded');
             setTimeout(() => {
@@ -43,22 +103,253 @@ class TechPartsPro {
         }, 1200);
     }
 
-    // ===== EVENT LISTENERS =====
+    // ===== SISTEMA DE PRODUTOS =====
+    renderProducts(category = 'all') {
+        const grid = document.getElementById('products-grid');
+        if (!grid) return;
+
+        let filteredProducts = this.products;
+        
+        if (category !== 'all') {
+            filteredProducts = this.products.filter(product => product.category === category);
+        }
+
+        if (filteredProducts.length === 0) {
+            grid.innerHTML = `
+                <div class="empty-products">
+                    <i class="fas fa-search"></i>
+                    <h3>Nenhum produto encontrado</h3>
+                    <p>Tente outra categoria ou volte mais tarde</p>
+                </div>
+            `;
+            return;
+        }
+
+        grid.innerHTML = filteredProducts.map(product => `
+            <div class="product-card">
+                <div class="product-badge">
+                    <i class="fas fa-star"></i>
+                    ${product.rating}
+                </div>
+                <div class="product-image">
+                    <img src="${product.image}" alt="${product.name}" loading="lazy">
+                    <div class="product-overlay">
+                        <button class="btn-quick-view" onclick="app.quickView(${product.id})">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="product-content">
+                    <div class="product-category">${this.formatCategory(product.category)}</div>
+                    <h3 class="product-title">${product.name}</h3>
+                    <p class="product-description">${product.description}</p>
+                    
+                    <div class="product-specs">
+                        ${product.specs.slice(0, 2).map(spec => `
+                            <span class="product-spec">${spec}</span>
+                        `).join('')}
+                    </div>
+                    
+                    <div class="product-footer">
+                        <div class="product-price">
+                            <span class="price-currency">R$</span>
+                            <span class="price-value">${product.price.toFixed(2)}</span>
+                        </div>
+                        <button class="btn-add-cart" onclick="app.addToCart(${product.id})">
+                            <i class="fas fa-shopping-cart"></i>
+                            Adicionar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    formatCategory(category) {
+        const categories = {
+            'processadores': 'Processadores',
+            'placas-video': 'Placas de Vídeo', 
+            'memorias': 'Memórias RAM'
+        };
+        return categories[category] || category;
+    }
+
+    // ===== SISTEMA DE CARRINHO =====
+    addToCart(productId) {
+        const product = this.products.find(p => p.id === productId);
+        if (!product) return;
+
+        const existingItem = this.cart.find(item => item.id === productId);
+        
+        if (existingItem) {
+            existingItem.quantity += 1;
+        } else {
+            this.cart.push({
+                ...product,
+                quantity: 1
+            });
+        }
+        
+        this.saveCart();
+        this.showNotification('✅ Produto adicionado ao carrinho!', 'success');
+    }
+
+    removeFromCart(productId) {
+        this.cart = this.cart.filter(item => item.id !== productId);
+        this.saveCart();
+        this.showNotification('🗑️ Item removido do carrinho', 'success');
+    }
+
+    saveCart() {
+        localStorage.setItem('techparts_cart', JSON.stringify(this.cart));
+        this.updateCartUI();
+    }
+
+    updateCartUI() {
+        const cartCount = document.getElementById('cart-count');
+        const cartTotal = document.getElementById('cart-total');
+        const cartItems = document.getElementById('cart-items');
+
+        // Atualizar contador
+        if (cartCount) {
+            cartCount.textContent = this.cart.reduce((total, item) => total + item.quantity, 0);
+        }
+
+        // Atualizar total
+        if (cartTotal) {
+            const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            cartTotal.textContent = `R$ ${total.toFixed(2)}`;
+        }
+
+        // Atualizar itens
+        if (cartItems) {
+            if (this.cart.length > 0) {
+                cartItems.innerHTML = this.cart.map(item => `
+                    <div class="cart-item" data-product-id="${item.id}">
+                        <div class="cart-item-content">
+                            <div class="cart-item-image">
+                                <img src="${item.image}" alt="${item.name}" loading="lazy">
+                            </div>
+                            <div class="cart-item-details">
+                                <h4 class="cart-item-title">${item.name}</h4>
+                                <p class="cart-item-price">R$ ${item.price.toFixed(2)}</p>
+                                <p class="cart-item-quantity">Qtd: ${item.quantity}</p>
+                                <p class="cart-item-total">Subtotal: R$ ${(item.price * item.quantity).toFixed(2)}</p>
+                            </div>
+                            <button class="cart-item-remove" onclick="app.removeFromCart(${item.id})" aria-label="Remover item">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                cartItems.innerHTML = `
+                    <div class="empty-cart">
+                        <i class="fas fa-shopping-cart"></i>
+                        <p>Seu carrinho está vazio</p>
+                    </div>
+                `;
+            }
+        }
+    }
+
+    // ===== SISTEMA DE PAGAMENTO =====
+    checkout() {
+        if (this.cart.length === 0) {
+            this.showNotification('🛒 Seu carrinho está vazio!', 'warning');
+            return;
+        }
+
+        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
+        if (!paymentMethod) {
+            this.showNotification('💳 Selecione um método de pagamento', 'warning');
+            return;
+        }
+
+        this.showNotification('⏳ Processando pagamento...', 'info');
+        
+        // Simular processamento
+        setTimeout(() => {
+            const total = this.cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+            
+            if (paymentMethod.value === 'PIX') {
+                this.showPixModal(total);
+            } else {
+                this.showNotification(`✅ Pedido confirmado! Método: ${paymentMethod.value}`, 'success');
+            }
+            
+            // Limpar carrinho
+            this.cart = [];
+            this.saveCart();
+            this.toggleCart();
+        }, 2000);
+    }
+
+    showPixModal(amount) {
+        const modal = document.createElement('div');
+        modal.className = 'modal-overlay active';
+        modal.innerHTML = `
+            <div class="modal-container">
+                <div class="modal-content">
+                    <div class="auth-header">
+                        <h3>💰 Pagamento PIX</h3>
+                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="pix-content" style="text-align: center; padding: 2rem;">
+                        <p style="font-size: 1.2rem; margin-bottom: 1rem; font-weight: 600;">
+                            Valor: <span style="color: #10b981;">R$ ${amount.toFixed(2)}</span>
+                        </p>
+                        <div style="background: #f3f4f6; padding: 1.5rem; border-radius: 12px; margin: 1rem 0;">
+                            <p style="font-family: monospace; font-size: 0.9rem; word-break: break-all;">
+                                00020126580014br.gov.bcb.pix0136aae6e021-5a32-4a89-8a9d-1234567890125204000053039865406${amount.toFixed(2)}5802BR5925TECHPARTS PRO LTDA6008SAO PAULO62290525RP1234567890123456789012306304
+                            </p>
+                        </div>
+                        <p style="margin-top: 1rem; color: #6b7280; font-size: 0.9rem;">
+                            Copie o código PIX e cole em seu app bancário
+                        </p>
+                        <button onclick="this.closest('.modal-overlay').remove()" 
+                                class="btn-auth-submit" style="margin-top: 2rem;">
+                            <i class="fas fa-check"></i>
+                            OK, entendi
+                        </button>
+                    </div>
+                </div>
+            </div>
+        `;
+        
+        document.body.appendChild(modal);
+        document.body.style.overflow = 'hidden';
+    }
+
+    // ===== SISTEMA DE FILTROS =====
     setupEventListeners() {
+        // Filtros de categoria
+        document.querySelectorAll('.category-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                const category = btn.getAttribute('href').replace('#', '');
+                this.filterProducts(category);
+                
+                // Atualizar botões ativos
+                document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            });
+        });
+
         // Header scroll effect
         window.addEventListener('scroll', this.throttle(this.handleScroll.bind(this), 100));
         
-        // Form submissions
-        this.setupFormHandlers();
-        
-        // Touch events para mobile
-        this.setupTouchEvents();
-        
-        // Keyboard shortcuts
-        this.setupKeyboardShortcuts();
-        
-        // Resize handler
-        window.addEventListener('resize', this.debounce(this.handleResize.bind(this), 250));
+        // Auth forms
+        document.querySelectorAll('.auth-form-content').forEach(form => {
+            form.addEventListener('submit', this.handleAuthForm.bind(this));
+        });
+    }
+
+    filterProducts(category) {
+        this.currentCategory = category;
+        this.renderProducts(category);
     }
 
     handleScroll() {
@@ -72,324 +363,33 @@ class TechPartsPro {
         }
     }
 
-    handleResize() {
-        // Fechar menu mobile se aberto durante resize
-        if (window.innerWidth >= 768) {
-            this.closeMobileMenu();
-        }
-    }
-
-    setupFormHandlers() {
-        // Forms de autenticação
-        document.querySelectorAll('.auth-form-content').forEach(form => {
-            form.addEventListener('submit', this.handleAuthForm.bind(this));
-        });
-
-        // Forms de carrinho
-        document.querySelectorAll('.add-to-cart-form').forEach(form => {
-            form.addEventListener('submit', this.handleAddToCart.bind(this));
-        });
-    }
-
-    setupTouchEvents() {
-        // Swipe para fechar menu mobile (apenas touch devices)
-        if ('ontouchstart' in window) {
-            let startX = 0;
-            const mobileOverlay = document.getElementById('mobile-overlay');
-            
-            document.addEventListener('touchstart', (e) => {
-                startX = e.touches[0].clientX;
-            });
-
-            document.addEventListener('touchend', (e) => {
-                if (!mobileOverlay?.classList.contains('active')) return;
-                
-                const endX = e.changedTouches[0].clientX;
-                const diffX = startX - endX;
-
-                // Swipe da direita para esquerda para fechar
-                if (diffX > 50) {
-                    this.toggleMobileMenu();
-                }
-            });
-        }
-    }
-
-    setupKeyboardShortcuts() {
-        document.addEventListener('keydown', (e) => {
-            // ESC - Fechar modais
-            if (e.key === 'Escape') {
-                this.closeAllModals();
-            }
-            
-            // Ctrl+/ - Abrir busca (futuro)
-            if (e.ctrlKey && e.key === '/') {
-                e.preventDefault();
-                // this.openSearch();
-            }
-        });
-    }
-
-    // ===== ANIMAÇÕES =====
-    setupAnimations() {
-        // Intersection Observer para animações ao scroll
-        const observerOptions = {
-            threshold: 0.1,
-            rootMargin: '0px 0px -50px 0px'
-        };
-
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    entry.target.classList.add('fade-in');
-                    observer.unobserve(entry.target);
-                }
-            });
-        }, observerOptions);
-
-        // Observar elementos para animação
-        document.querySelectorAll('.product-card, .stat, .category-btn').forEach(el => {
-            observer.observe(el);
-        });
-    }
-
-    setupScrollEffects() {
-        // Smooth scroll para âncoras
-        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
-            anchor.addEventListener('click', function (e) {
-                e.preventDefault();
-                const target = document.querySelector(this.getAttribute('href'));
-                if (target) {
-                    target.scrollIntoView({
-                        behavior: 'smooth',
-                        block: 'start'
-                    });
-                }
-            });
-        });
-    }
-
-    // ===== SISTEMA DE CARRINHO =====
-    setupCart() {
-        this.cart = {
-            items: [],
-            total: 0,
-            count: 0
-        };
-        
-        this.loadCart();
-    }
-
-    async loadCart() {
-        try {
-            const response = await fetch('/api/cart');
-            
-            if (response.status === 401) {
-                // Usuário não logado - estado normal
-                this.updateCartUI({ items: [], total: 0, count: 0 });
-                return;
-            }
-
-            if (!response.ok) {
-                throw new Error(`Erro ${response.status}: ${response.statusText}`);
-            }
-
-            const cartData = await response.json();
-            
-            if (cartData.success) {
-                this.updateCartUI(cartData);
-            }
-        } catch (error) {
-            console.log('🔐 Carrinho não disponível - usuário não logado');
-        }
-    }
-
-    updateCartUI(cartData) {
-        const cartCount = document.getElementById('cart-count');
-        const cartTotal = document.getElementById('cart-total');
-        const cartItems = document.getElementById('cart-items');
-
-        // Atualizar contador
-        if (cartCount) {
-            cartCount.textContent = cartData.count || 0;
-        }
-
-        // Atualizar total
-        if (cartTotal) {
-            cartTotal.textContent = `R$ ${(cartData.total || 0).toFixed(2)}`;
-        }
-
-        // Atualizar itens
-        if (cartItems) {
-            if (cartData.items && cartData.items.length > 0) {
-                cartItems.innerHTML = this.generateCartItemsHTML(cartData.items);
-            } else {
-                cartItems.innerHTML = `
-                    <div class="empty-cart">
-                        <i class="fas fa-shopping-cart"></i>
-                        <p>Seu carrinho está vazio</p>
-                    </div>
-                `;
-            }
-        }
-    }
-
-    generateCartItemsHTML(items) {
-        return items.map(item => {
-            const product = item.product || item;
-            const quantity = item.quantity || 1;
-            const total = product.price * quantity;
-            
-            return `
-                <div class="cart-item" data-product-id="${product.id}">
-                    <div class="cart-item-content">
-                        <div class="cart-item-image">
-                            <img src="${product.image}" alt="${product.name}" loading="lazy">
-                        </div>
-                        <div class="cart-item-details">
-                            <h4 class="cart-item-title">${product.name}</h4>
-                            <p class="cart-item-price">R$ ${product.price.toFixed(2)}</p>
-                            <p class="cart-item-quantity">Qtd: ${quantity}</p>
-                            <p class="cart-item-total">Subtotal: R$ ${total.toFixed(2)}</p>
-                        </div>
-                        <button class="cart-item-remove" onclick="app.removeFromCart(${product.id})" aria-label="Remover item">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-
-    async handleAddToCart(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        const submitBtn = form.querySelector('button[type="submit"]');
-        const originalText = submitBtn.innerHTML;
-
-        try {
-            // Mostrar loading
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            submitBtn.disabled = true;
-
-            const formData = new FormData(form);
-            const response = await fetch('/api/cart/add', {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.showNotification('✅ ' + result.message, 'success');
-                this.updateCartUI({
-                    items: result.items || this.cart.items,
-                    total: result.cart_total || this.cart.total,
-                    count: result.cart_count || this.cart.count
-                });
-                
-                // Feedback visual no botão
-                submitBtn.innerHTML = '<i class="fas fa-check"></i>';
-                setTimeout(() => {
-                    submitBtn.innerHTML = originalText;
-                }, 1000);
-            } else {
-                this.showNotification('❌ ' + result.message, 'error');
-                submitBtn.innerHTML = originalText;
-            }
-        } catch (error) {
-            console.error('Erro ao adicionar ao carrinho:', error);
-            this.showNotification('❌ Erro de conexão', 'error');
-            submitBtn.innerHTML = originalText;
-        } finally {
-            submitBtn.disabled = false;
-        }
-    }
-
-    async removeFromCart(productId) {
-        try {
-            const response = await fetch(`/api/cart/${productId}`, {
-                method: 'DELETE'
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.showNotification('🗑️ Item removido do carrinho', 'success');
-                this.loadCart(); // Recarregar carrinho
-            } else {
-                this.showNotification('❌ ' + result.message, 'error');
-            }
-        } catch (error) {
-            console.error('Erro ao remover do carrinho:', error);
-            this.showNotification('❌ Erro de conexão', 'error');
-        }
-    }
-
     // ===== SISTEMA DE AUTENTICAÇÃO =====
-    async handleAuthForm(e) {
+    handleAuthForm(e) {
         e.preventDefault();
-        
         const form = e.target;
         const submitBtn = form.querySelector('button[type="submit"]');
         const originalText = submitBtn.innerHTML;
 
-        try {
-            // Mostrar loading
-            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-            submitBtn.disabled = true;
+        // Simular autenticação
+        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        submitBtn.disabled = true;
 
-            const formData = new FormData(form);
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: formData
-            });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.showNotification('✅ ' + result.message, 'success');
-                
-                // Fechar modal após sucesso
-                setTimeout(() => {
-                    this.closeAuthModal();
-                    window.location.reload(); // Recarregar para atualizar estado
-                }, 1500);
-            } else {
-                this.showNotification('❌ ' + result.message, 'error');
-                submitBtn.innerHTML = originalText;
-            }
-        } catch (error) {
-            console.error('Erro de autenticação:', error);
-            this.showNotification('❌ Erro de conexão', 'error');
+        setTimeout(() => {
+            this.showNotification('✅ Login realizado com sucesso!', 'success');
+            this.closeAuthModal();
             submitBtn.innerHTML = originalText;
-        } finally {
             submitBtn.disabled = false;
-        }
-    }
-
-    checkAuthStatus() {
-        const hasSession = document.cookie.includes('session_id');
-        console.log(hasSession ? '🔐 Usuário autenticado' : '👤 Usuário não autenticado');
+        }, 1500);
     }
 
     // ===== SISTEMA DE MODAIS =====
     setupModals() {
-        // Overlay para fechar modais
         document.addEventListener('click', (e) => {
             if (e.target.classList.contains('modal-overlay') || 
                 e.target.classList.contains('cart-overlay') ||
                 e.target.classList.contains('mobile-menu-overlay')) {
                 this.closeAllModals();
             }
-        });
-
-        // Prevenir fechamento ao clicar dentro do modal
-        document.querySelectorAll('.modal-container, .cart-sidebar, .mobile-menu').forEach(modal => {
-            modal.addEventListener('click', (e) => {
-                e.stopPropagation();
-            });
         });
     }
 
@@ -400,10 +400,9 @@ class TechPartsPro {
 
         if (!modal || !loginForm || !registerForm) return;
 
-        // Mostrar modal
         modal.classList.add('active');
+        document.body.style.overflow = 'hidden';
 
-        // Mostrar form correto
         if (type === 'login') {
             loginForm.classList.add('active');
             registerForm.classList.remove('active');
@@ -411,9 +410,6 @@ class TechPartsPro {
             registerForm.classList.add('active');
             loginForm.classList.remove('active');
         }
-
-        // Prevenir scroll do body
-        document.body.style.overflow = 'hidden';
     }
 
     closeAuthModal() {
@@ -439,7 +435,6 @@ class TechPartsPro {
                 cartSidebar.classList.add('active');
                 cartOverlay.classList.add('active');
                 document.body.style.overflow = 'hidden';
-                this.loadCart(); // Recarregar carrinho ao abrir
             }
         }
     }
@@ -480,134 +475,51 @@ class TechPartsPro {
         document.body.style.overflow = '';
     }
 
-    // ===== SISTEMA DE PAGAMENTO GHOSTSPAY =====
-    async checkout() {
-        const cartItems = document.getElementById('cart-items');
-        const emptyCart = cartItems?.querySelector('.empty-cart');
-        
-        if (emptyCart) {
-            this.showNotification('🛒 Seu carrinho está vazio', 'warning');
-            return;
-        }
-
-        const paymentMethod = document.querySelector('input[name="paymentMethod"]:checked');
-        if (!paymentMethod) {
-            this.showNotification('💳 Selecione um método de pagamento', 'warning');
-            return;
-        }
-
-        try {
-            this.showNotification('⏳ Processando pagamento...', 'info');
-            
-            const formData = new FormData();
-            formData.append('payment_method', paymentMethod.value);
-
-            const response = await fetch('/api/payment/checkout', {
-                method: 'POST',
-                body: formData
+    // ===== UTILITÁRIOS =====
+    setupScrollEffects() {
+        document.querySelectorAll('a[href^="#"]').forEach(anchor => {
+            anchor.addEventListener('click', function (e) {
+                e.preventDefault();
+                const target = document.querySelector(this.getAttribute('href'));
+                if (target) {
+                    target.scrollIntoView({
+                        behavior: 'smooth',
+                        block: 'start'
+                    });
+                }
             });
-
-            const result = await response.json();
-
-            if (result.success) {
-                this.handlePaymentSuccess(result);
-            } else {
-                this.handlePaymentError(result);
-            }
-        } catch (error) {
-            console.error('Erro no checkout:', error);
-            this.showNotification('❌ Erro de conexão no pagamento', 'error');
-        }
+        });
     }
 
-    handlePaymentSuccess(result) {
-        this.showNotification('✅ Pagamento processado com sucesso!', 'success');
-        
-        if (result.qr_code) {
-            // Mostrar QR Code PIX
-            this.showPixModal(result.qr_code, result.amount);
-        } else if (result.payment_url) {
-            // Redirecionar para página de pagamento
-            window.open(result.payment_url, '_blank');
-        } else {
-            console.log('Pagamento criado:', result);
-        }
-        
-        this.toggleCart();
-        this.loadCart(); // Recarregar carrinho vazio
+    setupAnimations() {
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('fade-in');
+                }
+            });
+        }, { threshold: 0.1 });
+
+        document.querySelectorAll('.product-card, .stat, .category-btn').forEach(el => {
+            observer.observe(el);
+        });
     }
 
-    handlePaymentError(result) {
-        console.error('Erro no pagamento:', result);
-        
-        let errorMessage = '❌ Erro no processamento do pagamento';
-        if (result.message) {
-            if (result.message.includes('401')) {
-                errorMessage = '🔐 Erro de autenticação - contate o suporte';
-            } else if (result.message.includes('400')) {
-                errorMessage = '📋 Dados inválidos no pagamento';
-            } else if (result.message.includes('422')) {
-                errorMessage = '⚙️ Erro de validação dos dados';
-            } else {
-                errorMessage = `❌ ${result.message}`;
-            }
-        }
-        
-        this.showNotification(errorMessage, 'error');
-    }
-
-    showPixModal(qrCode, amount) {
-        const modal = document.createElement('div');
-        modal.className = 'modal-overlay active';
-        modal.innerHTML = `
-            <div class="modal-container">
-                <div class="modal-content">
-                    <div class="auth-header">
-                        <h3>💰 Pagamento PIX</h3>
-                        <button class="modal-close" onclick="this.closest('.modal-overlay').remove()">
-                            <i class="fas fa-times"></i>
-                        </button>
-                    </div>
-                    <div class="pix-content" style="text-align: center; padding: 2rem;">
-                        <p style="font-size: 1.2rem; margin-bottom: 1rem; font-weight: 600;">
-                            Valor: <span style="color: #10b981;">R$ ${amount.toFixed(2)}</span>
-                        </p>
-                        <img src="${qrCode}" alt="QR Code PIX" 
-                             style="max-width: 256px; width: 100%; border: 2px solid #e5e7eb; border-radius: 12px; padding: 1rem; background: white;">
-                        <p style="margin-top: 1.5rem; color: #6b7280;">
-                            Escaneie o QR Code com seu app bancário
-                        </p>
-                        <button onclick="this.closest('.modal-overlay').remove()" 
-                                class="btn-auth-submit" style="margin-top: 2rem;">
-                            <i class="fas fa-check"></i>
-                            OK, entendi
-                        </button>
-                    </div>
-                </div>
-            </div>
-        `;
-        
-        document.body.appendChild(modal);
-        document.body.style.overflow = 'hidden';
-    }
-
-    // ===== SISTEMA DE NOTIFICAÇÕES =====
     showNotification(message, type = 'info') {
-        this.removeExistingNotifications();
+        // Remover notificações existentes
+        document.querySelectorAll('.notification').forEach(n => n.remove());
 
         const notification = document.createElement('div');
-        notification.className = `notification notification-${type} slide-in-right`;
-        notification.setAttribute('aria-live', 'polite');
+        notification.className = `notification notification-${type}`;
         notification.innerHTML = `
             <div class="notification-content">
                 <div class="notification-message">${message}</div>
-                <button class="notification-close" onclick="this.parentElement.parentElement.remove()" aria-label="Fechar notificação">
+                <button class="notification-close" onclick="this.parentElement.parentElement.remove()">
                     <i class="fas fa-times"></i>
                 </button>
             </div>
         `;
 
-        // Adicionar estilos
         Object.assign(notification.style, {
             position: 'fixed',
             top: '20px',
@@ -618,17 +530,14 @@ class TechPartsPro {
             borderRadius: '12px',
             boxShadow: '0 10px 25px rgba(0,0,0,0.2)',
             zIndex: '4000',
-            maxWidth: 'min(400px, calc(100vw - 40px))',
-            animation: 'slideInRight 0.3s ease-out'
+            maxWidth: '400px'
         });
 
         document.body.appendChild(notification);
 
-        // Auto-remover após 5 segundos
         setTimeout(() => {
             if (notification.parentElement) {
-                notification.style.animation = 'slideOutRight 0.3s ease-in';
-                setTimeout(() => notification.remove(), 300);
+                notification.remove();
             }
         }, 5000);
     }
@@ -643,13 +552,10 @@ class TechPartsPro {
         return colors[type] || colors.info;
     }
 
-    removeExistingNotifications() {
-        document.querySelectorAll('.notification').forEach(notification => {
-            notification.remove();
-        });
+    quickView(productId) {
+        this.showNotification('👀 Visualização rápida em desenvolvimento', 'info');
     }
 
-    // ===== FUNÇÕES UTILITÁRIAS =====
     scrollToProducts() {
         const productsSection = document.getElementById('products');
         if (productsSection) {
@@ -660,24 +566,7 @@ class TechPartsPro {
         }
     }
 
-    quickView(productId) {
-        // Implementação futura para visualização rápida
-        this.showNotification('👀 Visualização rápida em desenvolvimento', 'info');
-    }
-
-    // ===== PERFORMANCE OPTIMIZATION =====
-    debounce(func, wait) {
-        let timeout;
-        return function executedFunction(...args) {
-            const later = () => {
-                clearTimeout(timeout);
-                func(...args);
-            };
-            clearTimeout(timeout);
-            timeout = setTimeout(later, wait);
-        };
-    }
-
+    // ===== PERFORMANCE =====
     throttle(func, limit) {
         let inThrottle;
         return function(...args) {
@@ -688,32 +577,17 @@ class TechPartsPro {
             }
         };
     }
-
-    // ===== ANALYTICS E MONITORAMENTO =====
-    trackEvent(category, action, label) {
-        if (typeof gtag !== 'undefined') {
-            gtag('event', action, {
-                event_category: category,
-                event_label: label
-            });
-        }
-        console.log(`📊 Analytics: ${category} - ${action} - ${label}`);
-    }
 }
 
-// ===== INICIALIZAÇÃO DA APLICAÇÃO =====
+// ===== INICIALIZAÇÃO =====
 const app = new TechPartsPro();
 
-// ===== FUNÇÕES GLOBAIS PARA HTML =====
+// ===== FUNÇÕES GLOBAIS =====
 window.showAuthModal = (type) => app.showAuthModal(type);
 window.closeAuthModal = () => app.closeAuthModal();
 window.toggleCart = () => app.toggleCart();
 window.toggleMobileMenu = () => app.toggleMobileMenu();
 window.scrollToProducts = () => app.scrollToProducts();
-window.quickView = (productId) => app.quickView(productId);
 window.checkout = () => app.checkout();
-
-// Exportar para uso global
-window.app = app;
 
 console.log('🎉 TechParts Pro - Sistema carregado com sucesso!');
