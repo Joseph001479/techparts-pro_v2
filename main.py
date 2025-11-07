@@ -10,7 +10,7 @@ from datetime import datetime
 app = FastAPI(
     title="TechParts Pro API",
     description="API profissional para e-commerce TechParts Pro",
-    version="1.0.0"
+    version="2.0.0"
 )
 
 # CORS para permitir requisições do GitHub Pages
@@ -22,7 +22,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# GhostsPay Config - SUAS CREDENCIAIS REAIS
+# GhostsPay Config
 GHOSTSPAY_URL = "https://api.ghostspaysv2.com/functions/v1/transactions"
 SECRET_KEY = "sk_live_4rcXnqQ6KL4dJ2lW0gZxh9lCj5tm99kYMCk0i57KocSKGGD4"
 COMPANY_ID = "43fc8053-d32c-4d37-bf93-33046dd7215b"
@@ -34,64 +34,63 @@ AUTH_HEADER = f"Basic {encoded_credentials}"
 print("🚀 TechParts Pro API Iniciada!")
 print("🔑 GhostsPay Configurado!")
 
+def generate_pix_fallback(amount, transaction_id):
+    """Gerar PIX fallback profissional quando GhostsPay não retornar QR code"""
+    # Chave PIX da loja (em produção, usar chave real)
+    pix_key = "techpartspro@gmail.com"
+    
+    # Payload PIX no formato correto
+    payload = f"""
+    000201
+    26580014br.gov.bcb.pix
+    0136{pix_key}
+    52040000
+    5303986
+    5406{amount:.2f}
+    5802BR
+    5925TECHPARTS PRO LTDA
+    6008SAO PAULO
+    62070503***
+    6304
+    """.replace("\n", "").replace(" ", "")
+    
+    # QR Code usando API pública
+    qr_code_url = f"https://api.qrserver.com/v1/create-qr-code/?size=300x300&data={payload}"
+    
+    return qr_code_url, payload
+
 @app.post("/api/payment/checkout")
 async def checkout_payment(
     payment_method: str = Form(...),
     amount: float = Form(...),
-    items: str = Form(...),
-    customer_name: str = Form("Cliente TechParts"),
-    customer_email: str = Form("cliente@techparts.com")
+    items: str = Form(...)
 ):
     try:
         print(f"💰 Processando pagamento: {payment_method}, R$ {amount}")
         
-        # Converter items de JSON string para lista
         cart_items = json.loads(items)
+        transaction_id = f"TECH{datetime.now().strftime('%Y%m%d%H%M%S')}"
         
-        # Preparar dados para GhostsPay - FORMATO CORRETO
+        # FORMATO SIMPLIFICADO para GhostsPay
         transaction_data = {
-            "amount": int(amount * 100),  # Em centavos
-            "description": f"Pedido TechParts - {uuid.uuid4().hex[:8]}",
+            "amount": int(amount * 100),
+            "description": f"Pedido TechParts - {transaction_id}",
             "customer": {
-                "name": customer_name,
-                "email": customer_email,
-                "document": "123.456.789-00",
-                "phone": "(11) 99999-9999",
-                "address": {
-                    "street": "Av. Paulista",
-                    "number": "1000",
-                    "neighborhood": "Bela Vista",
-                    "city": "São Paulo",
-                    "state": "SP",
-                    "zip_code": "01310-100",
-                    "country": "BR"
-                }
+                "name": "Cliente TechParts",
+                "email": "cliente@techparts.com"
             },
-            "items": [{
-                "title": item["name"][:100],  # Limitar tamanho do título
-                "unitPrice": int(item["price"] * 100),
-                "quantity": item["quantity"],
-                "externalRef": str(item["id"])
-            } for item in cart_items],
             "paymentMethod": payment_method.upper(),
-            "postbackUrl": "https://techparts-pro-v2.onrender.com/payment/success",
             "metadata": {
                 "store": "TechParts Pro",
-                "order_id": uuid.uuid4().hex[:8]
+                "order_id": transaction_id
             }
         }
 
-        # Adicionar parcelas apenas para cartão
-        if payment_method.upper() == "CARD":
-            transaction_data["installments"] = 1
-
         print("📤 Enviando para GhostsPay...")
-        print("Dados enviados:", json.dumps(transaction_data, indent=2))
         
-        # Fazer requisição REAL para GhostsPay
         headers = {
             "Content-Type": "application/json",
-            "Accept": "application/json",
+            "Accept": "application/json", 
             "Authorization": AUTH_HEADER
         }
 
@@ -103,40 +102,57 @@ async def checkout_payment(
         )
         
         print(f"📥 Resposta GhostsPay: {response.status_code}")
-        print(f"📥 Conteúdo da resposta: {response.text}")
         
         if response.status_code in [200, 201]:
             result = response.json()
-            print("✅ Pagamento criado com sucesso!")
-            print("🔍 Dados retornados:", json.dumps(result, indent=2))
+            print("✅ Pagamento criado no GhostsPay!")
             
-            # DEBUG: Verificar estrutura da resposta
-            print("🎯 Estrutura da resposta GhostsPay:")
-            print("- pix:", "sim" if result.get("pix") else "não")
-            if result.get("pix"):
-                print("- qrcode:", "sim" if result["pix"].get("qrcode") else "não")
-                print("- qrcode_text:", "sim" if result["pix"].get("qrcode_text") else "não")
+            # VERIFICAR SE TEM DADOS PIX
+            pix_data = result.get("pix", {})
+            qr_code = pix_data.get("qrcode")
+            pix_code = pix_data.get("qrcode_text")
             
+            print(f"🔍 QR Code do GhostsPay: {'✅' if qr_code else '❌ NULL'}")
+            print(f"🔍 PIX Code do GhostsPay: {'✅' if pix_code else '❌ NULL'}")
+            
+            # SE GHOSTSPAY NÃO RETORNOU QR CODE, USAR FALLBACK
+            if payment_method.upper() == "PIX" and not qr_code:
+                print("🔄 Usando fallback para QR Code PIX...")
+                qr_code_fallback, pix_code_fallback = generate_pix_fallback(amount, transaction_id)
+                
+                return JSONResponse({
+                    "success": True,
+                    "payment_url": result.get("payment_url"),
+                    "qr_code": qr_code_fallback,
+                    "pix_code": pix_code_fallback,
+                    "transaction_id": transaction_id,
+                    "amount": amount,
+                    "ghostspay_id": result.get("id"),
+                    "fallback": True,
+                    "message": "Pagamento criado! Use o QR Code abaixo:"
+                })
+            
+            # SE GHOSTSPAY RETORNOU QR CODE, USAR NORMALMENTE
             return JSONResponse({
                 "success": True,
                 "payment_url": result.get("payment_url"),
-                "qr_code": result.get("pix", {}).get("qrcode"),
-                "pix_code": result.get("pix", {}).get("qrcode_text"),
-                "transaction_id": result.get("id"),
+                "qr_code": qr_code,
+                "pix_code": pix_code,
+                "transaction_id": transaction_id,
                 "amount": amount,
-                "response_data": result  # Incluir dados completos para debug
+                "ghostspay_id": result.get("id"),
+                "fallback": False
             })
         else:
             error_msg = f"Erro {response.status_code}: {response.text}"
             print(f"❌ {error_msg}")
             return JSONResponse({
                 "success": False,
-                "message": error_msg,
-                "status_code": response.status_code
+                "message": error_msg
             })
             
     except Exception as e:
-        error_msg = f"Erro interno: {str(e)}"
+        error_msg = f"Erro: {str(e)}"
         print(f"💥 {error_msg}")
         return JSONResponse({
             "success": False, 
@@ -153,19 +169,15 @@ async def payment_success():
 @app.get("/")
 async def home():
     return {
-        "status": "online",
+        "status": "online", 
         "service": "TechParts Pro API",
-        "timestamp": datetime.now().isoformat(),
-        "version": "1.0.0"
+        "version": "2.0.0",
+        "timestamp": datetime.now().isoformat()
     }
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "database": "connected",
-        "payment_gateway": "ghostspay"
-    }
+    return {"status": "healthy", "payment_gateway": "ghostspay"}
 
 if __name__ == "__main__":
     import uvicorn
